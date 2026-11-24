@@ -465,7 +465,7 @@
         state.shifts.filter(s=>(s.days||[]).includes(weekday)).forEach(shift=>{
           for(let i=0;i<Math.max(1,Number(shift.headcount)||1);i++){
             const times=slotTimes(date,shift.start,shift.end);
-            slots.push({id:date+"|"+shift.id+"|"+i,date,weekday,shiftId:shift.id,shiftName:shift.name,start:shift.start,end:shift.end,role:shift.role,slotNo:i+1,startAt:times.startAt,endAt:times.endAt,hours:times.hours});
+            slots.push({id:date+"|"+shift.id+"|"+i,date,weekday,shiftId:shift.id,shiftName:shift.name,start:shift.start,end:shift.end,slotNo:i+1,startAt:times.startAt,endAt:times.endAt,hours:times.hours});
           }
         });
       });
@@ -681,6 +681,7 @@
     $("#closeDialog").addEventListener("click",()=>$("#staffDialog").close());
     $("#cancelDialog").addEventListener("click",()=>$("#staffDialog").close());
     $("#staffForm").addEventListener("submit",savePerson);
+    $("#employmentType").addEventListener("change",()=>{const fullTime=$("#employmentType").value==="正職";$("#targetHours").value=fullTime?36:20;$("#maxHours").value=fullTime?40:28});
     staffRows.addEventListener("click",event=>{
       const button=event.target.closest("[data-person-action]");if(!button)return;
       const person=state.staff.find(p=>p.id===button.dataset.id);if(!person)return;
