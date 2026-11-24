@@ -212,8 +212,6 @@
   <script>
     "use strict";
     const STORE_KEY = "shiftwell.scheduler.v1";
-    const ROLE_OPTIONS = ["服務","廚務","收銀","管理","其他"];
-    const ANY_ROLE = "不限";
     const DAY_NAMES = ["日","一","二","三","四","五","六"];
     const state = loadState();
     const $ = (selector) => document.querySelector(selector);
@@ -392,9 +390,10 @@
     }
 
     function addShift(){
-      state.shifts.push({id:uid("shift"),name:"新班別",start:"10:00",end:"16:00",role:ANY_ROLE,headcount:1,days:[0,1,2,3,4,5,6]});
+      state.shifts.push({id:uid("shift"),name:"新班別",start:"10:00",end:"16:00",headcount:1,days:[0,1,2,3,4,5,6]});
       invalidateResult();persist();renderAll();showToast("已新增班別，請設定時段與人數。");
     }
+
     function editShift(event){
       const target=event.target;
       const field=target.dataset.shiftField;
@@ -419,12 +418,12 @@
       invalidateResult();persist();renderAll();showToast("已刪除班別。");
     }
     function updateSettings(){
-      state.settings.startDate=$("#startDate").value;
-      state.settings.endDate=$("#endDate").value;
+      state.settings.month=$("#scheduleMonth").value||state.settings.month;
       state.settings.minRestHours=Math.min(24,Math.max(0,Number($("#minRest").value)||0));
       state.settings.maxConsecutiveDays=Math.min(7,Math.max(1,Number($("#maxConsecutive").value)||1));
-      invalidateResult();persist();
+      invalidateResult();persist();renderStaff();
     }
+
     function timeMinutes(time){const p=time.split(":").map(Number);return p[0]*60+p[1]}
     function slotTimes(date,start,end){
       const startAt=parseDate(date);const [sh,sm]=start.split(":").map(Number);startAt.setHours(sh,sm,0,0);
@@ -432,11 +431,8 @@
       if(timeMinutes(end)<=timeMinutes(start))endAt.setDate(endAt.getDate()+1);
       return {startAt:startAt.getTime(),endAt:endAt.getTime(),hours:(endAt-startAt)/3600000};
     }
-    function dateRange(start,end){
-      const result=[];let current=parseDate(start);const last=parseDate(end);
-      while(current<=last&&result.length<32){result.push(isoDate(current));current=addDays(current,1)}
-      return result;
-    }
+    function dateRange(month){return monthDates(month)}
+
     function weekKey(date){
       const d=parseDate(date);const monday=addDays(d,-((d.getDay()+6)%7));return isoDate(monday);
     }
@@ -448,7 +444,20 @@
       for(const n of vals){run=prev===null||n===prev+1?run+1:1;best=Math.max(best,run);prev=n}
       return best;
     }
-    function hasSkill(person,slot){return slot.role===ANY_ROLE||(person.roles||[]).includes(slot.role)}
+    function makeSlots(dates){
+      const slots=[];
+      dates.forEach(date=>{
+        const weekday=parseDate(date).getDay();
+        state.shifts.filter(s=>(s.days||[]).includes(weekday)).forEach(shift=>{
+          for(let i=0;i<Math.max(1,Number(shift.headcount)||1);i++){
+            const times=slotTimes(date,shift.start,shift.end);
+            slots.push({id:date+"|"+shift.id+"|"+i,date,weekday,shiftId:shift.id,shiftName:shift.name,start:shift.start,end:shift.end,slotNo:i+1,startAt:times.startAt,endAt:times.endAt,hours:times.hours});
+          }
+        });
+      });
+      return slots;
+    }
+
     function makeSlots(dates){
       const slots=[];
       dates.forEach(date=>{
@@ -475,9 +484,7 @@
       return true;
     }
     function eligible(person,slot,assignments){
-      if(!person.availabilityDays.includes(slot.weekday))return false;
-      if(!hasSkill(person,slot))return false;
-      if((person.blackoutDates||[]).includes(slot.date))return false;
+      if(!personAvailabilityDates(person).includes(slot.date))return false;
       const current=weeklyHours(assignments,person.id,weekKey(slot.date));
       if(current+slot.hours>Number(person.maxHours)+.001)return false;
       const own=assignments.filter(a=>a.employeeId===person.id).map(a=>a.slot);
@@ -485,6 +492,7 @@
       if(maxStreak(own.map(x=>x.date).concat(slot.date))>state.settings.maxConsecutiveDays)return false;
       return true;
     }
+
     function isLate(slot){return timeMinutes(slot.start)>=15*60||timeMinutes(slot.end)>=20*60}
     function isEarly(slot){return timeMinutes(slot.start)<10*60}
     function assignmentScore(person,slot,assignments){
@@ -531,7 +539,7 @@
     function runAttempt(slots){
       const assignments=[];
       const ordered=slots.map(slot=>{
-        const count=state.staff.filter(p=>p.availabilityDays.includes(slot.weekday)&&hasSkill(p,slot)&&!(p.blackoutDates||[]).includes(slot.date)).length;
+        const count=state.staff.filter(p=>personAvailabilityDates(p).includes(slot.date)).length;
         return {slot,count,tie:Math.random()};
       }).sort((a,b)=>a.count-b.count||a.tie-b.tie).map(x=>x.slot);
       for(const slot of ordered){
@@ -543,13 +551,10 @@
       }
       return {slots,assignments,grade:scheduleGrade(slots,assignments)};
     }
+
     function shortageReason(slot,assignments){
-      const available=state.staff.filter(p=>p.availabilityDays.includes(slot.weekday)&&hasSkill(p,slot)&&!(p.blackoutDates||[]).includes(slot.date));
-      if(!available.length){
-        const skilled=state.staff.some(p=>hasSkill(p,slot));
-        if(!skilled&&slot.role!==ANY_ROLE)return "沒有具備「"+slot.role+"」技能且可上班的人員";
-        return "沒有人員可在 "+dayLabel(slot.weekday)+" 上班或當日可排";
-      }
+      const available=state.staff.filter(p=>personAvailabilityDates(p).includes(slot.date));
+      if(!available.length)return "沒有人勾選 "+Number(slot.date.slice(-2))+" 日可上班";
       const blocked=new Set();
       available.forEach(p=>{
         const own=assignments.filter(a=>a.employeeId===p.id).map(a=>a.slot);
@@ -560,18 +565,19 @@
       if(blocked.size)return "可排人員已受"+[...blocked].join("、")+"限制";
       return "目前其他硬性條件下找不到可用人員";
     }
+
     function createSchedule(){
-      const start=$("#startDate").value;const end=$("#endDate").value;
-      if(!start||!end||end<start){showToast("請確認排班起訖日期。");return}
-      const dates=dateRange(start,end);
-      if(dates.length>31){showToast("一次最多排 31 天，請縮短日期範圍。");return}
+      const month=$("#scheduleMonth").value;
+      if(!month){showToast("請選擇要排班的月份。");return}
+      state.settings.month=month;
+      const dates=monthDates(month);
       if(!state.staff.length){showToast("請先新增至少一位人員。");return}
       if(!state.shifts.length){showToast("請先新增至少一個班別。");return}
       const invalid=state.shifts.find(s=>!s.name.trim()||!s.start||!s.end||timeMinutes(s.start)===timeMinutes(s.end));
       if(invalid){showToast("請確認每個班別名稱與時間，開始和結束時間不可相同。");return}
       updateSettings();
       const slots=makeSlots(dates);
-      if(!slots.length){showToast("這段期間沒有排班需求，請檢查班別適用星期。");return}
+      if(!slots.length){showToast("這個月沒有排班需求，請檢查班別適用星期。");return}
       let best=null;
       for(let i=0;i<45;i++){
         const trial=runAttempt(slots);
@@ -583,6 +589,7 @@
       $("#resultSection").classList.remove("hidden");
       $("#resultSection").scrollIntoView({behavior:"smooth",block:"start"});
     }
+
     function formatDateLabel(date){
       const d=parseDate(date);
       return d.getFullYear()+"/"+pad(d.getMonth()+1)+"/"+pad(d.getDate())+"（"+dayLabel(d.getDay())+"）";
