@@ -174,7 +174,7 @@
       <div id="resultBanner" class="result-banner"></div>
       <div class="kpis" id="kpis"></div>
       <div class="table-wrap"><table class="schedule-table">
-        <thead><tr><th>日期</th><th>班別／時段</th><th>建議人員</th><th>未補人數</th></tr></thead>
+        <thead id="scheduleHead"></thead>
         <tbody id="scheduleRows"></tbody>
       </table></div>
       <div class="sub-table">
@@ -638,12 +638,20 @@
         const slot=result.slots.find(s=>s.id===item.slotId);if(!slot)return;
         const group=groupMap.get(slot.date+"|"+slot.shiftId);if(group)group.reasons.push(item.reason);
       });
-      const groups=[...groupMap.values()].sort((a,b)=>a.date.localeCompare(b.date)||a.start.localeCompare(b.start));
-      $("#scheduleRows").innerHTML=groups.map(g=>{
-        const missing=g.slots.length-g.people.length;
-        const names=g.people.map(name=>'<span class="assignment">'+esc(name)+'</span>').join("")||'<span class="muted">尚無安排</span>';
-        const vacancies=missing?'<span class="vacancy">缺 '+missing+' 人</span><div class="muted">'+esc([...new Set(g.reasons)].join("；"))+'</div>':'<span class="tag">已補滿</span>';
-        return '<tr><td><strong>'+esc(formatDateLabel(g.date))+'</strong></td><td><strong>'+esc(g.shiftName)+'</strong><br><span class="muted">'+esc(g.start)+'–'+esc(g.end)+'</span></td><td>'+names+'</td><td>'+vacancies+'</td></tr>';
+      const scheduleShifts=state.shifts.slice().sort((a,b)=>String(a.start).localeCompare(String(b.start)));
+      $("#scheduleHead").innerHTML="<tr><th>日期</th><th>星期</th>"+scheduleShifts.map(shift=>'<th><strong>'+esc(shift.name)+'</strong><br><span class="muted">'+esc(shift.start)+'–'+esc(shift.end)+'</span></th>').join("")+"</tr>";
+      $("#scheduleRows").innerHTML=dates.map(date=>{
+        const day=parseDate(date);
+        const cells=scheduleShifts.map(shift=>{
+          const group=groupMap.get(date+"|"+shift.id);
+          if(!group)return '<td><span class="muted">—</span></td>';
+          const names=group.people.map(name=>'<span class="assignment">'+esc(name)+'</span>').join("")||'<span class="muted">尚無安排</span>';
+          const missing=group.slots.length-group.people.length;
+          const vacancies=missing?'<div><span class="vacancy">缺 '+missing+' 人</span><div class="muted">'+esc([...new Set(group.reasons)].join("；"))+'</div></div>':'<span class="tag">已補滿</span>';
+          return '<td><div class="assignment-list">'+names+'</div>'+vacancies+'</td>';
+        }).join("");
+        const dateText=day.getFullYear()+"/"+pad(day.getMonth()+1)+"/"+pad(day.getDate());
+        return '<tr><td><strong>'+dateText+'</strong></td><td>'+dayLabel(day.getDay())+'</td>'+cells+'</tr>';
       }).join("");
       const workload=state.staff.map(person=>{
         const own=result.assignments.filter(a=>a.employeeId===person.id);
