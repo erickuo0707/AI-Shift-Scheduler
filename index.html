@@ -157,7 +157,7 @@
       </div>
 
       <div class="controls">
-        <div class="controls-note">排班會先遵守可上班日、技能、每週工時上限、最少休息與連續工作日上限，再依目標工時、偏好班別與晚班接早班風險評分。規則可依你的工作場所調整。</div>
+        <div class="controls-note">排班會先遵守當月可上班日期、每週工時上限、最少休息與連續工作日上限，再依目標工時、班別偏好與晚班接早班風險評分。規則可依你的工作場所調整。</div>
         <button class="btn primary generate" id="generateBtn">✦ 生成建議班表</button>
       </div>
     </section>
@@ -601,14 +601,15 @@
       const avoidCount=result.assignments.filter(a=>{
         const p=state.staff.find(x=>x.id===a.employeeId);return p&&p.avoidShiftId===a.slot.shiftId;
       }).length;
-      $("#resultSub").textContent=formatDateLabel(state.settings.startDate)+" 至 "+formatDateLabel(state.settings.endDate)+" · "+result.slots.length+" 個班位";
+      const dates=monthDates(state.settings.month);
+      $("#resultSub").textContent=formatDateLabel(dates[0])+" 至 "+formatDateLabel(dates[dates.length-1])+" · "+result.slots.length+" 個班位";
       const banner=$("#resultBanner");
       if(unfilled){
         banner.className="result-banner warn";
-        banner.textContent="目前排出 "+result.assignments.length+" / "+result.slots.length+" 個班位，還有 "+unfilled+" 個缺額。請查看各班別原因，調整人力、技能或休息條件後重新生成。";
+        banner.textContent="目前排出 "+result.assignments.length+" / "+result.slots.length+" 個班位，還有 "+unfilled+" 個缺額。請查看原因，調整人員可上班日期、班別需求或休息條件後重新生成。";
       }else{
         banner.className="result-banner";
-        banner.textContent="所有班位都已安排。系統遵守目前設定的可上班日、技能、週工時上限、休息間隔與連續工作日上限。";
+        banner.textContent="所有班位都已安排。系統遵守目前設定的可上班日期、每週工時上限、休息間隔與連續工作日上限。";
       }
       $("#kpis").innerHTML=[
         ["人力覆蓋率",coverage+"%","green"],
@@ -619,7 +620,7 @@
       const groupMap=new Map();
       result.slots.forEach(slot=>{
         const key=slot.date+"|"+slot.shiftId;
-        if(!groupMap.has(key))groupMap.set(key,{date:slot.date,shiftName:slot.shiftName,start:slot.start,end:slot.end,role:slot.role,slots:[],people:[],reasons:[]});
+        if(!groupMap.has(key))groupMap.set(key,{date:slot.date,shiftName:slot.shiftName,start:slot.start,end:slot.end,slots:[],people:[],reasons:[]});
         groupMap.get(key).slots.push(slot);
       });
       result.assignments.forEach(a=>{
@@ -636,7 +637,7 @@
         const missing=g.slots.length-g.people.length;
         const names=g.people.map(name=>'<span class="assignment">'+esc(name)+'</span>').join("")||'<span class="muted">尚無安排</span>';
         const vacancies=missing?'<span class="vacancy">缺 '+missing+' 人</span><div class="muted">'+esc([...new Set(g.reasons)].join("；"))+'</div>':'<span class="tag">已補滿</span>';
-        return '<tr><td><strong>'+esc(formatDateLabel(g.date))+'</strong></td><td><strong>'+esc(g.shiftName)+'</strong><br><span class="muted">'+esc(g.start)+'–'+esc(g.end)+' · '+esc(g.role)+'</span></td><td>'+names+'</td><td>'+vacancies+'</td></tr>';
+        return '<tr><td><strong>'+esc(formatDateLabel(g.date))+'</strong></td><td><strong>'+esc(g.shiftName)+'</strong><br><span class="muted">'+esc(g.start)+'–'+esc(g.end)+'</span></td><td>'+names+'</td><td>'+vacancies+'</td></tr>';
       }).join("");
       const workload=state.staff.map(person=>{
         const own=result.assignments.filter(a=>a.employeeId===person.id);
@@ -649,26 +650,28 @@
         if(!own.length)reminder="尚未排班";
         else if([...byWeek.values()].some(value=>value>max))reminder="某週超過工時上限";
         else if(person.avoidShiftId&&own.some(a=>a.slot.shiftId===person.avoidShiftId))reminder="含避開班別";
-        return '<tr><td><span class="person-name">'+esc(person.name)+'</span></td><td>'+hours.toFixed(1)+' 小時</td><td>'+target+' 小時／週</td><td>'+own.length+' 班</td><td><span class="muted">'+esc(reminder)+'</span></td></tr>';
+        return '<tr><td><span class="person-name">'+esc(person.name)+'</span> <span class="tag">'+esc(person.type)+'</span></td><td>'+hours.toFixed(1)+' 小時</td><td>'+target+' 小時／週</td><td>'+own.length+' 班</td><td><span class="muted">'+esc(reminder)+'</span></td></tr>';
       });
       $("#workloadRows").innerHTML=workload.join("")||'<tr><td colspan="5">目前沒有可顯示的人員。</td></tr>';
       $("#resultSection").classList.remove("hidden");
     }
+
     function downloadFile(name,content,type){
       const blob=new Blob([content],{type});const url=URL.createObjectURL(blob);
       const a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
     }
     function exportCsv(){
       if(!state.result){showToast("請先生成班表。");return}
-      const lines=[["日期","星期","班別","開始","結束","技能","人員","狀態"]];
+      const lines=[["日期","星期","班別","開始","結束","人員","狀態"]];
       state.result.slots.forEach(slot=>{
         const assigned=state.result.assignments.find(a=>a.slot.id===slot.id);
         const person=assigned&&state.staff.find(p=>p.id===assigned.employeeId);
-        lines.push([slot.date,dayLabel(slot.weekday),slot.shiftName,slot.start,slot.end,slot.role,person?person.name:"",person?"已安排":shortageReason(slot,state.result.assignments)]);
+        lines.push([slot.date,dayLabel(slot.weekday),slot.shiftName,slot.start,slot.end,person?person.name:"",person?"已安排":shortageReason(slot,state.result.assignments)]);
       });
       const csv="\uFEFF"+lines.map(row=>row.map(value=>'"'+String(value).replace(/"/g,'""')+'"').join(",")).join("\r\n");
       downloadFile("ShiftWell_班表.csv",csv,"text/csv;charset=utf-8");
     }
+
     function exportBackup(){
       const backup={version:1,staff:state.staff,shifts:state.shifts,settings:state.settings};
       downloadFile("ShiftWell_排班設定.json",JSON.stringify(backup,null,2),"application/json");
@@ -689,7 +692,7 @@
     shiftList.addEventListener("click",event=>{
       const button=event.target.closest("[data-shift-action]");if(button&&confirm("確定刪除此班別？"))deleteShift(button.dataset.id);
     });
-    ["startDate","endDate","minRest","maxConsecutive"].forEach(id=>$("#"+id).addEventListener("change",updateSettings));
+    ["scheduleMonth","minRest","maxConsecutive"].forEach(id=>$("#"+id).addEventListener("change",updateSettings));
     $("#generateBtn").addEventListener("click",createSchedule);
     $("#resetDemo").addEventListener("click",()=>{
       if(confirm("重設後會以示範人員和班別取代目前資料。確定重設嗎？")){
