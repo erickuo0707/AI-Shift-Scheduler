@@ -225,13 +225,12 @@
     function isoDate(d){return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())}
     function parseDate(value){const p=value.split("-").map(Number);return new Date(p[0],p[1]-1,p[2],12,0,0,0)}
     function addDays(d,n){const next=new Date(d);next.setDate(next.getDate()+n);return next}
-    function nextMonday(){
-      const d=new Date();d.setHours(12,0,0,0);
-      const delta=(8-d.getDay())%7;
-      d.setDate(d.getDate()+delta);
-      return isoDate(d);
+    function currentMonth(){const d=new Date();return d.getFullYear()+"-"+pad(d.getMonth()+1)}
+    function monthDates(month){
+      const parts=month.split("-").map(Number);
+      const count=new Date(parts[0],parts[1],0).getDate();
+      return Array.from({length:count},(_,i)=>parts[0]+"-"+pad(parts[1])+"-"+pad(i+1));
     }
-    function defaultEnd(start){return isoDate(addDays(parseDate(start),6))}
     function uid(prefix){return prefix+"-"+Math.random().toString(36).slice(2,9)}
     function esc(v){return String(v==null?"":v).replace(/[&<>"']/g,(c)=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
     function showToast(message){
@@ -239,34 +238,59 @@
       clearTimeout(toastTimer);toastTimer=setTimeout(()=>node.classList.remove("show"),2400);
     }
     function demoState(){
-      const start=nextMonday();
+      const month=currentMonth();
       const daySets=[[1,2,4,5,6],[2,3,4,5,0],[1,3,4,6,0],[1,2,5,6,0],[2,3,5,6,0],[1,3,4,5,0]];
       const people=["示範小安","示範小庭","示範阿哲","示範小琳","示範小宇","示範小晴"];
+      const types=["PT","PT","正職","正職","PT","正職"];
       const shifts=[
-        {id:"early",name:"早班",start:"09:00",end:"15:00",role:ANY_ROLE,headcount:1,days:[0,1,2,3,4,5,6]},
-        {id:"late",name:"晚班",start:"16:00",end:"22:00",role:ANY_ROLE,headcount:1,days:[0,1,2,3,4,5,6]}
+        {id:"early",name:"早班",start:"09:00",end:"15:00",headcount:1,days:[0,1,2,3,4,5,6]},
+        {id:"late",name:"晚班",start:"16:00",end:"22:00",headcount:1,days:[0,1,2,3,4,5,6]}
       ];
-      return {
-        staff:people.map((name,i)=>({id:"demo-"+i,name,roles:i===2?["服務","收銀"]:["服務"],availabilityDays:daySets[i],targetHours:18,maxHours:24,preferredShiftId:i%2===0?"early":"late",avoidShiftId:"",blackoutDates:[]})),
-        shifts:shifts,
-        settings:{startDate:start,endDate:defaultEnd(start),minRestHours:11,maxConsecutiveDays:5},
-        result:null
-      };
+      const staff=people.map((name,i)=>{
+        const type=types[i];
+        const availabilityByMonth={};
+        availabilityByMonth[month]=monthDates(month).filter(date=>daySets[i].includes(parseDate(date).getDay()));
+        return {id:"demo-"+i,name,type,availabilityByMonth,targetHours:type==="正職"?36:20,maxHours:type==="正職"?40:28,preferredShiftId:i%2===0?"early":"late",avoidShiftId:""};
+      });
+      return {staff,shifts,settings:{month,minRestHours:11,maxConsecutiveDays:5},result:null};
     }
+
     function loadState(){
       try{
         const raw=localStorage.getItem(STORE_KEY);
         if(!raw)return demoState();
         const parsed=JSON.parse(raw);
         const base=demoState();
+        const oldSettings=parsed.settings||{};
+        const month=oldSettings.month||(oldSettings.startDate?oldSettings.startDate.slice(0,7):base.settings.month);
+        const sourceStaff=Array.isArray(parsed.staff)?parsed.staff:base.staff;
+        const staff=sourceStaff.map((person,index)=>{
+          const availabilityByMonth=Object.assign({},person.availabilityByMonth||{});
+          if(!Object.prototype.hasOwnProperty.call(availabilityByMonth,month)&&Array.isArray(person.availabilityDays)){
+            availabilityByMonth[month]=monthDates(month).filter(date=>person.availabilityDays.includes(parseDate(date).getDay()));
+          }
+          const type=person.type==="正職"?"正職":"PT";
+          return {
+            id:person.id||"person-"+index,
+            name:person.name||"未命名",
+            type,
+            availabilityByMonth,
+            targetHours:person.targetHours===undefined?(type==="正職"?36:20):Number(person.targetHours),
+            maxHours:person.maxHours===undefined?(type==="正職"?40:28):Number(person.maxHours),
+            preferredShiftId:person.preferredShiftId||"",
+            avoidShiftId:person.avoidShiftId||""
+          };
+        });
+        const shifts=Array.isArray(parsed.shifts)?parsed.shifts.map(shift=>({id:shift.id,name:shift.name,start:shift.start,end:shift.end,headcount:shift.headcount,days:shift.days})):base.shifts;
         return {
-          staff:Array.isArray(parsed.staff)?parsed.staff:base.staff,
-          shifts:Array.isArray(parsed.shifts)?parsed.shifts:base.shifts,
-          settings:Object.assign(base.settings,parsed.settings||{}),
-          result:parsed.result||null
+          staff,
+          shifts,
+          settings:{month,minRestHours:oldSettings.minRestHours===undefined?base.settings.minRestHours:oldSettings.minRestHours,maxConsecutiveDays:oldSettings.maxConsecutiveDays===undefined?base.settings.maxConsecutiveDays:oldSettings.maxConsecutiveDays},
+          result:null
         };
       }catch(e){return demoState()}
     }
+
     function persist(){
       try{localStorage.setItem(STORE_KEY,JSON.stringify(state))}
       catch(e){showToast("瀏覽器無法儲存資料，請匯出備份。")}
@@ -277,60 +301,71 @@
     }
     function dayLabel(day){return "週"+DAY_NAMES[day]}
     function shiftName(id){const found=state.shifts.find(s=>s.id===id);return found?found.name:""}
-    function roleTags(roles){
-      if(!roles||!roles.length)return '<span class="tag soft">未設定</span>';
-      return roles.map(r=>'<span class="tag">'+esc(r)+'</span>').join("");
+    function personAvailabilityDates(person,month){
+      const selectedMonth=month||state.settings.month;
+      const values=person.availabilityByMonth&&person.availabilityByMonth[selectedMonth];
+      return Array.isArray(values)?values.slice().sort():[];
     }
+
     function renderStaff(){
       if(!state.staff.length){
         staffRows.innerHTML='<tr><td colspan="6"><div class="empty">尚未新增人員。請先建立團隊名單。</div></td></tr>';return;
       }
+      const monthLabel=state.settings.month.replace("-","年")+"月";
       staffRows.innerHTML=state.staff.map(p=>{
-        const days=(p.availabilityDays||[]).slice().sort((a,b)=>a-b).map(dayLabel).join("、")||"未設定";
+        const dates=personAvailabilityDates(p).map(date=>Number(date.slice(-2))).join("、");
+        const availability=dates?monthLabel+"："+dates+" 日":"尚未勾選";
         const prefs=[p.preferredShiftId?'<span class="tag">偏好 '+esc(shiftName(p.preferredShiftId)||"已刪除班別")+'</span>':"",p.avoidShiftId?'<span class="tag soft">避開 '+esc(shiftName(p.avoidShiftId)||"已刪除班別")+'</span>':""].filter(Boolean).join(" ")||'<span class="muted">未設定</span>';
-        return '<tr><td><span class="person-name">'+esc(p.name)+'</span><br><span class="muted">'+esc(p.blackoutDates&&p.blackoutDates.length?p.blackoutDates.length+" 個不能上班日期":"")+'</span></td><td>'+roleTags(p.roles)+'</td><td>'+esc(days)+'</td><td>'+esc(p.targetHours)+' / '+esc(p.maxHours)+' 小時</td><td>'+prefs+'</td><td><div class="row-actions"><button class="btn small" data-person-action="edit" data-id="'+esc(p.id)+'">編輯</button><button class="btn small danger" data-person-action="delete" data-id="'+esc(p.id)+'">刪除</button></div></td></tr>';
+        return '<tr><td><span class="person-name">'+esc(p.name)+'</span></td><td><span class="tag">'+esc(p.type)+'</span></td><td>'+esc(availability)+'</td><td>'+esc(p.targetHours)+' / '+esc(p.maxHours)+' 小時</td><td>'+prefs+'</td><td><div class="row-actions"><button class="btn small" data-person-action="edit" data-id="'+esc(p.id)+'">編輯</button><button class="btn small danger" data-person-action="delete" data-id="'+esc(p.id)+'">刪除</button></div></td></tr>';
       }).join("");
     }
+
     function renderShifts(){
       if(!state.shifts.length){shiftList.innerHTML='<div class="empty">尚未設定班別。請新增至少一個班別。</div>';return}
-      const roleChoices=[ANY_ROLE].concat(ROLE_OPTIONS);
       shiftList.innerHTML=state.shifts.map(s=>{
-        const roleOptions=roleChoices.map(role=>'<option value="'+esc(role)+'" '+(s.role===role?"selected":"")+'>'+esc(role)+'</option>').join("");
         const days=DAY_NAMES.map((d,i)=>'<label class="day-check"><input type="checkbox" data-shift-field="days" data-id="'+esc(s.id)+'" data-day="'+i+'" '+((s.days||[]).includes(i)?"checked":"")+'> '+d+'</label>').join("");
         return '<article class="shift-card" data-shift="'+esc(s.id)+'">'+
           '<div class="field"><label>班別名稱</label><input type="text" maxlength="20" data-shift-field="name" data-id="'+esc(s.id)+'" value="'+esc(s.name)+'"></div>'+
           '<div class="field"><label>開始時間</label><input type="time" data-shift-field="start" data-id="'+esc(s.id)+'" value="'+esc(s.start)+'"></div>'+
           '<div class="field"><label>結束時間</label><input type="time" data-shift-field="end" data-id="'+esc(s.id)+'" value="'+esc(s.end)+'"></div>'+
           '<div class="field"><label>每班人數</label><input type="number" min="1" max="30" data-shift-field="headcount" data-id="'+esc(s.id)+'" value="'+esc(s.headcount)+'"></div>'+
-          '<div class="field"><label>所需技能</label><select data-shift-field="role" data-id="'+esc(s.id)+'">'+roleOptions+'</select></div>'+
           '<div><button class="btn small danger" data-shift-action="delete" data-id="'+esc(s.id)+'">刪除</button></div>'+
           '<div class="field shift-days-wrap"><label>適用星期</label><div class="shift-days">'+days+'</div></div>'+
           '</article>';
       }).join("");
     }
+
     function renderAll(){
       renderStaff();renderShifts();
-      $("#startDate").value=state.settings.startDate;
-      $("#endDate").value=state.settings.endDate;
+      $("#scheduleMonth").value=state.settings.month;
       $("#minRest").value=state.settings.minRestHours;
       $("#maxConsecutive").value=state.settings.maxConsecutiveDays;
       if(state.result)renderResult(state.result);
     }
+
     function prefOptions(selected){
       return '<option value="">無偏好</option>'+state.shifts.map(s=>'<option value="'+esc(s.id)+'" '+(selected===s.id?"selected":"")+'>'+esc(s.name)+'</option>').join("");
     }
     function renderStaffForm(person){
-      $("#roleOptions").innerHTML=ROLE_OPTIONS.map(role=>'<label class="check-chip"><input type="checkbox" name="personRole" value="'+esc(role)+'" '+(person&&person.roles.includes(role)?"checked":"")+'> '+esc(role)+'</label>').join("");
-      $("#availabilityOptions").innerHTML=DAY_NAMES.map((d,i)=>'<label class="check-chip"><input type="checkbox" name="personDay" value="'+i+'" '+(!person||(person.availabilityDays||[]).includes(i)?"checked":"")+'> 週'+d+'</label>').join("");
+      const available=new Set(person?personAvailabilityDates(person):[]);
+      const dates=monthDates(state.settings.month);
+      $("#availabilityMonthLabel").textContent=state.settings.month.replace("-","年")+"月";
+      $("#availabilityOptions").innerHTML=dates.map(date=>{
+        const day=Number(date.slice(-2));
+        const weekday=DAY_NAMES[parseDate(date).getDay()];
+        return '<label class="date-check"><input type="checkbox" name="availabilityDate" value="'+esc(date)+'" '+(available.has(date)?"checked":"")+'><strong>'+day+'</strong><small>週'+weekday+'</small></label>';
+      }).join("");
       $("#preferredShift").innerHTML=prefOptions(person?person.preferredShiftId:"");
       $("#avoidShift").innerHTML=prefOptions(person?person.avoidShiftId:"");
       $("#staffId").value=person?person.id:"";
       $("#staffName").value=person?person.name:"";
-      $("#targetHours").value=person?person.targetHours:24;
-      $("#maxHours").value=person?person.maxHours:36;
-      $("#blackoutDates").value=person?(person.blackoutDates||[]).join(", "):"";
+      $("#employmentType").value=person?person.type:"PT";
+      const type=person?person.type:"PT";
+      $("#targetHours").value=person?person.targetHours:(type==="正職"?36:20);
+      $("#maxHours").value=person?person.maxHours:(type==="正職"?40:28);
       $("#dialogTitle").textContent=person?"編輯人員":"新增人員";
     }
+
     function openPerson(id){
       const person=state.staff.find(p=>p.id===id);
       renderStaffForm(person||null);
@@ -341,19 +376,21 @@
       event.preventDefault();
       const id=$("#staffId").value;
       const name=$("#staffName").value.trim();
-      const roles=[...document.querySelectorAll('input[name="personRole"]:checked')].map(x=>x.value);
-      const days=[...document.querySelectorAll('input[name="personDay"]:checked')].map(x=>Number(x.value));
+      const type=$("#employmentType").value;
+      const dates=[...document.querySelectorAll('input[name="availabilityDate"]:checked')].map(x=>x.value);
       const target=Number($("#targetHours").value);
       const max=Number($("#maxHours").value);
       if(!name){showToast("請填寫人員名稱。");return}
-      if(!roles.length){showToast("請至少選擇一項技能。");return}
-      if(!days.length){showToast("請至少選擇一個可上班日。");return}
       if(max<target){showToast("每週最高工時需大於或等於目標工時。");return}
-      const person={id:id||uid("person"),name,roles,availabilityDays:days,targetHours:target,maxHours:max,preferredShiftId:$("#preferredShift").value,avoidShiftId:$("#avoidShift").value,blackoutDates:$("#blackoutDates").value.split(",").map(x=>x.trim()).filter(x=>/^\d{4}-\d{2}-\d{2}$/.test(x))};
+      const existing=state.staff.find(p=>p.id===id);
+      const availabilityByMonth=Object.assign({},existing&&existing.availabilityByMonth?existing.availabilityByMonth:{});
+      availabilityByMonth[state.settings.month]=dates;
+      const person={id:id||uid("person"),name,type,availabilityByMonth,targetHours:target,maxHours:max,preferredShiftId:$("#preferredShift").value,avoidShiftId:$("#avoidShift").value};
       const index=state.staff.findIndex(p=>p.id===person.id);
       if(index<0)state.staff.push(person);else state.staff[index]=person;
       invalidateResult();persist();renderAll();$("#staffDialog").close();showToast(index<0?"已新增人員。":"已更新人員。");
     }
+
     function addShift(){
       state.shifts.push({id:uid("shift"),name:"新班別",start:"10:00",end:"16:00",role:ANY_ROLE,headcount:1,days:[0,1,2,3,4,5,6]});
       invalidateResult();persist();renderAll();showToast("已新增班別，請設定時段與人數。");
