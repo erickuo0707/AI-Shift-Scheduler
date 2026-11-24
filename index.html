@@ -36,7 +36,7 @@
     h2{font-size:18px;margin:0;letter-spacing:-.02em}
     .sub{font-size:12px;color:var(--muted);margin:3px 0 0}
     .grid{display:grid;gap:14px}
-    .grid.settings{grid-template-columns:repeat(4,minmax(0,1fr))}
+    .grid.settings{grid-template-columns:repeat(3,minmax(0,1fr))}
     .field{display:flex;flex-direction:column;gap:6px;min-width:0}
     .field label,.field-label{font-size:12px;font-weight:700;color:#42534c}
     input[type=text],input[type=number],input[type=date],input[type=time],select{width:100%;min-width:0;border:1px solid #d8e0da;border-radius:10px;padding:9px 10px;background:#fff;color:var(--ink);outline:none}
@@ -62,10 +62,16 @@
     .btn-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
     .empty{padding:25px;text-align:center;color:var(--muted);font-size:13px}
     .shift-list{display:grid;gap:10px}
-    .shift-card{display:grid;grid-template-columns:1.1fr .9fr .9fr .75fr 1fr auto;align-items:end;gap:10px;padding:12px;border:1px solid var(--line);border-radius:13px;background:#fcfdfb}
+    .shift-card{display:grid;grid-template-columns:1.1fr .9fr .9fr .75fr auto;align-items:end;gap:10px;padding:12px;border:1px solid var(--line);border-radius:13px;background:#fcfdfb}
     .shift-days{display:flex;gap:4px;flex-wrap:wrap}
     .day-check{display:flex;align-items:center;gap:2px;background:#f1f4f1;padding:5px 6px;border-radius:7px;font-size:10px;color:#53645b}
     .day-check input{margin:0;width:12px;height:12px}
+    .availability-calendar{display:grid;grid-template-columns:repeat(7,minmax(34px,1fr));gap:6px}
+    .date-check{min-height:48px;border:1px solid var(--line);border-radius:9px;background:#fbfcfa;display:grid;grid-template-columns:auto 1fr;align-items:center;justify-content:center;gap:2px 5px;padding:5px;font-size:12px}
+    .date-check input{grid-row:1/3;margin:0;width:13px;height:13px}
+    .date-check strong{font-size:12px;line-height:1}
+    .date-check small{font-size:9px;color:var(--muted);line-height:1}
+    .date-check:has(input:checked){background:var(--mint);border-color:#91b9a4;color:var(--green-dark)}
     .section-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
     .controls{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding-top:18px;border-top:1px solid var(--line);margin-top:18px}
     .controls-note{font-size:11px;color:var(--muted);max-width:510px}
@@ -112,29 +118,29 @@
     <section class="hero">
       <div class="eyebrow">Shift planning, made thoughtful</div>
       <h1>把每個人的需求，排進一張好班表。</h1>
-      <p>設定團隊技能、可上班日期、工時目標與班別偏好，再指定排班期間和各班人力需求。系統會兼顧休息、工時公平與班次偏好，並把無法滿足的需求清楚標出來。</p>
+      <p>設定每位人員是 PT 或正職、當月能上班的日期與班別偏好，再指定各班人力需求。系統會兼顧休息、工時公平與班次偏好，並把無法滿足的需求清楚標出來。</p>
       <div class="hero-note">✦ 目前使用可解釋的智慧排班引擎；不需要 API 金鑰，人員資料不會上傳。</div>
     </section>
     <div class="steps">
-      <div class="step"><div class="step-num">1</div><div><strong>建立團隊</strong><span>技能、時間與個人偏好</span></div></div>
+      <div class="step"><div class="step-num">1</div><div><strong>建立團隊</strong><span>PT／正職與本月可上班日</span></div></div>
       <div class="step"><div class="step-num">2</div><div><strong>設定需求</strong><span>日期、班別與休息原則</span></div></div>
       <div class="step"><div class="step-num">3</div><div><strong>生成班表</strong><span>檢查缺口並匯出分享</span></div></div>
     </div>
 
     <section class="panel config" id="staffSection">
       <div class="panel-head">
-        <div class="panel-title"><div class="panel-icon">♙</div><div><h2>人員與個人需求</h2><p class="sub">用可排時段、技能和班別偏好描述需求，不需要填寫健康或敏感資訊。</p></div></div>
+        <div class="panel-title"><div class="panel-icon">♙</div><div><h2>人員與個人需求</h2><p class="sub">設定每月可上班日期、每週目標工時與班別偏好，不需要填寫健康或敏感資訊。</p></div></div>
         <div class="section-actions"><button class="btn" id="resetDemo">重設示範資料</button><button class="btn primary" id="addStaff">＋ 新增人員</button></div>
       </div>
       <div class="table-wrap"><table>
-        <thead><tr><th>人員</th><th>技能</th><th>可上班日</th><th>每週工時</th><th>班別偏好</th><th>操作</th></tr></thead>
+        <thead><tr><th>人員</th><th>類型</th><th>可上班日</th><th>每週工時</th><th>班別偏好</th><th>操作</th></tr></thead>
         <tbody id="staffRows"></tbody>
       </table></div>
     </section>
 
     <section class="panel config" id="shiftSection">
       <div class="panel-head">
-        <div class="panel-title"><div class="panel-icon">◷</div><div><h2>班別與每日人力需求</h2><p class="sub">每個班別可設定時段、所需技能、人數及適用星期。</p></div></div>
+        <div class="panel-title"><div class="panel-icon">◷</div><div><h2>班別與每日人力需求</h2><p class="sub">每個班別可設定時段、每班人數與適用星期。</p></div></div>
         <button class="btn" id="addShift">＋ 新增班別</button>
       </div>
       <div class="shift-list" id="shiftList"></div>
@@ -145,11 +151,11 @@
         <div class="panel-title"><div class="panel-icon">▦</div><div><h2>排班期間與休息規則</h2><p class="sub">硬性規則不會被偏好分數覆蓋；條件不足時會保留缺額並說明原因。</p></div></div>
       </div>
       <div class="grid settings">
-        <div class="field"><label for="startDate">開始日期</label><input id="startDate" type="date"></div>
-        <div class="field"><label for="endDate">結束日期</label><input id="endDate" type="date"></div>
+        <div class="field"><label for="scheduleMonth">排班月份</label><input id="scheduleMonth" type="month"></div>
         <div class="field"><label for="minRest">兩班最少休息（小時）</label><input id="minRest" type="number" min="0" max="24" step="0.5"></div>
         <div class="field"><label for="maxConsecutive">連續工作日上限</label><input id="maxConsecutive" type="number" min="1" max="7" step="1"></div>
       </div>
+
       <div class="controls">
         <div class="controls-note">排班會先遵守可上班日、技能、每週工時上限、最少休息與連續工作日上限，再依目標工時、偏好班別與晚班接早班風險評分。規則可依你的工作場所調整。</div>
         <button class="btn primary generate" id="generateBtn">✦ 生成建議班表</button>
@@ -190,13 +196,13 @@
         <input type="hidden" id="staffId">
         <div class="form-grid">
           <div class="field span2"><label for="staffName">姓名或代稱</label><input id="staffName" type="text" maxlength="30" required placeholder="例如：小安"></div>
-          <div class="field span2"><span class="field-label">可承擔技能</span><div class="check-grid" id="roleOptions"></div></div>
-          <div class="field span2"><span class="field-label">固定可上班星期</span><div class="check-grid" id="availabilityOptions"></div></div>
+          <div class="field"><label for="employmentType">人員類型</label><select id="employmentType"><option value="PT">PT</option><option value="正職">正職</option></select></div>
+          <div class="field span2"><span class="field-label">本月可上班日期</span><span class="hint" id="availabilityMonthLabel"></span><div class="availability-calendar" id="availabilityOptions"></div><span class="hint">勾選可以排班的日期；每個月份可分別設定。</span></div>
           <div class="field"><label for="targetHours">每週目標工時</label><input id="targetHours" type="number" min="0" max="168" required></div>
           <div class="field"><label for="maxHours">每週最高工時</label><input id="maxHours" type="number" min="1" max="168" required></div>
           <div class="field"><label for="preferredShift">偏好班別</label><select id="preferredShift"></select></div>
           <div class="field"><label for="avoidShift">希望避開的班別</label><select id="avoidShift"></select></div>
-          <div class="field span2"><label for="blackoutDates">不能上班日期（選填）</label><input id="blackoutDates" type="text" placeholder="例如：2026-12-03, 2026-12-10"><span class="hint">用逗號分隔日期，格式為 YYYY-MM-DD。</span></div>
+          <p class="hint span2">每週工時預設值可依實際制度調整；排班仍會檢查每週最高工時。</p>
         </div>
         <div class="dialog-footer"><button class="btn" type="button" id="cancelDialog">取消</button><button class="btn primary" type="submit">儲存人員</button></div>
       </form>
