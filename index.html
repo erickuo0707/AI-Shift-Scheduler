@@ -1,0 +1,654 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#173d35">
+  <title>AI 排班助手｜ShiftWell</title>
+  <style>
+    :root{--ink:#1d302b;--muted:#697872;--green:#1f6956;--green-dark:#174b3e;--mint:#e6f1ec;--cream:#f7f6f0;--line:#e0e6e1;--white:#fff;--orange:#9a5a1a;--orange-bg:#fff1df;--red:#a84237;--red-bg:#fff0ee;--shadow:0 12px 35px rgba(25,59,48,.08)}
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{margin:0;background:var(--cream);color:var(--ink);font-family:Inter,"Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif;line-height:1.5}
+    button,input,select{font:inherit}
+    button{cursor:pointer}
+    .topbar{height:68px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 max(22px,calc((100% - 1180px)/2));position:sticky;top:0;z-index:4}
+    .brand{display:flex;align-items:center;gap:11px;font-weight:800;letter-spacing:.02em}
+    .brand-icon{width:36px;height:36px;border-radius:12px;background:var(--green);color:#fff;display:grid;place-items:center;font-size:19px}
+    .brand small{display:block;font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.08em}
+    .privacy{font-size:12px;color:var(--green);background:var(--mint);border-radius:999px;padding:7px 12px;font-weight:700}
+    .wrap{width:min(1180px,calc(100% - 36px));margin:0 auto 70px}
+    .hero{margin:26px 0 20px;padding:30px 32px;border-radius:24px;background:linear-gradient(115deg,#173d35 0%,#286b57 72%,#4e8b70 100%);color:#fff;position:relative;overflow:hidden;box-shadow:var(--shadow)}
+    .hero:after{content:"";position:absolute;width:290px;height:290px;border:1px solid rgba(255,255,255,.14);border-radius:50%;right:-60px;top:-140px;box-shadow:0 0 0 30px rgba(255,255,255,.035),0 0 0 65px rgba(255,255,255,.025)}
+    .eyebrow{font-size:12px;text-transform:uppercase;letter-spacing:.13em;color:#c2e1d1;font-weight:800}
+    h1{font-size:clamp(27px,4vw,39px);line-height:1.2;margin:8px 0 10px;letter-spacing:-.035em}
+    .hero p{max-width:730px;margin:0;color:#e0eee7;font-size:15px}
+    .hero-note{display:inline-flex;margin-top:17px;align-items:center;gap:7px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.1);padding:7px 11px;border-radius:10px;color:#edf8f2;font-size:12px}
+    .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:0 0 18px}
+    .step{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px 16px;display:flex;align-items:center;gap:12px}
+    .step-num{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--mint);color:var(--green);font-weight:800;flex:0 0 auto}
+    .step strong{font-size:13px;display:block}
+    .step span{font-size:11px;color:var(--muted)}
+    .panel{background:#fff;border:1px solid var(--line);border-radius:20px;padding:22px;margin:14px 0;box-shadow:0 4px 18px rgba(25,59,48,.035)}
+    .panel-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:17px}
+    .panel-title{display:flex;gap:11px;align-items:flex-start}
+    .panel-icon{width:36px;height:36px;border-radius:12px;background:var(--mint);color:var(--green);display:grid;place-items:center;font-size:17px;flex:0 0 auto}
+    h2{font-size:18px;margin:0;letter-spacing:-.02em}
+    .sub{font-size:12px;color:var(--muted);margin:3px 0 0}
+    .grid{display:grid;gap:14px}
+    .grid.settings{grid-template-columns:repeat(4,minmax(0,1fr))}
+    .field{display:flex;flex-direction:column;gap:6px;min-width:0}
+    .field label,.field-label{font-size:12px;font-weight:700;color:#42534c}
+    input[type=text],input[type=number],input[type=date],input[type=time],select{width:100%;min-width:0;border:1px solid #d8e0da;border-radius:10px;padding:9px 10px;background:#fff;color:var(--ink);outline:none}
+    input:focus,select:focus{border-color:#4d947a;box-shadow:0 0 0 3px rgba(66,139,112,.13)}
+    input[type=checkbox]{accent-color:var(--green);width:15px;height:15px}
+    .hint{font-size:11px;color:var(--muted);line-height:1.45}
+    .table-wrap{overflow:auto;border:1px solid var(--line);border-radius:13px}
+    table{width:100%;border-collapse:collapse;min-width:650px}
+    th{background:#f5f8f5;text-align:left;color:#61726a;font-size:11px;letter-spacing:.04em;font-weight:800;padding:10px 12px;white-space:nowrap}
+    td{padding:11px 12px;border-top:1px solid #edf0ed;font-size:13px;vertical-align:middle}
+    .person-name{font-weight:800}
+    .muted{color:var(--muted);font-size:11px}
+    .tag{display:inline-flex;background:#edf5f0;color:#356b57;padding:3px 7px;border-radius:999px;font-size:10px;font-weight:700;margin:2px 3px 2px 0}
+    .tag.soft{background:#f2f3f1;color:#697872}
+    .row-actions{display:flex;gap:6px}
+    .btn{border:1px solid #d8e0da;background:#fff;color:var(--ink);border-radius:10px;padding:8px 12px;font-size:12px;font-weight:750;transition:.15s}
+    .btn:hover{border-color:#83ad98;background:#f5faf7}
+    .btn.primary{background:var(--green);color:#fff;border-color:var(--green)}
+    .btn.primary:hover{background:var(--green-dark)}
+    .btn.ghost{border-color:transparent;background:transparent;color:var(--green)}
+    .btn.danger{color:var(--red);border-color:#efd3d0}
+    .btn.small{padding:5px 8px;font-size:11px}
+    .btn-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .empty{padding:25px;text-align:center;color:var(--muted);font-size:13px}
+    .shift-list{display:grid;gap:10px}
+    .shift-card{display:grid;grid-template-columns:1.1fr .9fr .9fr .75fr 1fr auto;align-items:end;gap:10px;padding:12px;border:1px solid var(--line);border-radius:13px;background:#fcfdfb}
+    .shift-days{display:flex;gap:4px;flex-wrap:wrap}
+    .day-check{display:flex;align-items:center;gap:2px;background:#f1f4f1;padding:5px 6px;border-radius:7px;font-size:10px;color:#53645b}
+    .day-check input{margin:0;width:12px;height:12px}
+    .section-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .controls{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding-top:18px;border-top:1px solid var(--line);margin-top:18px}
+    .controls-note{font-size:11px;color:var(--muted);max-width:510px}
+    .generate{padding:12px 19px;font-size:14px}
+    .result{scroll-margin-top:85px}
+    .result-banner{padding:14px 16px;border-radius:13px;background:var(--mint);color:#245843;font-size:13px;margin-bottom:15px}
+    .result-banner.warn{background:var(--orange-bg);color:#754715}
+    .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin:14px 0}
+    .kpi{border:1px solid var(--line);border-radius:13px;padding:13px;background:#fff}
+    .kpi span{display:block;font-size:11px;color:var(--muted)}
+    .kpi strong{display:block;font-size:23px;letter-spacing:-.03em;margin-top:3px}
+    .kpi strong.green{color:var(--green)}
+    .kpi strong.orange{color:var(--orange)}
+    .schedule-table td{min-width:130px}
+    .schedule-table td:first-child{min-width:155px}
+    .assignment{display:inline-flex;margin:2px 4px 2px 0;padding:5px 8px;border-radius:8px;background:#edf5f0;color:#285c47;font-weight:700;font-size:11px}
+    .vacancy{display:inline-flex;margin:2px 4px 2px 0;padding:5px 8px;border-radius:8px;background:var(--red-bg);color:var(--red);font-weight:800;font-size:11px}
+    .sub-table{margin-top:18px}
+    .disclaimer{font-size:11px;color:var(--muted);margin-top:14px}
+    .dialog{border:0;border-radius:18px;padding:0;width:min(650px,calc(100% - 24px));box-shadow:0 25px 80px rgba(16,40,31,.28)}
+    .dialog::backdrop{background:rgba(13,31,25,.48);backdrop-filter:blur(3px)}
+    .dialog-inner{padding:22px}
+    .dialog-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px}
+    .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+    .span2{grid-column:1 / -1}
+    .check-grid{display:flex;gap:7px;flex-wrap:wrap}
+    .check-chip{display:flex;align-items:center;gap:5px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;font-size:11px}
+    .dialog-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:19px}
+    .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);opacity:0;background:#183e34;color:#fff;border-radius:10px;padding:10px 15px;font-size:12px;z-index:10;pointer-events:none;transition:.2s;box-shadow:var(--shadow)}
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+    .footer{text-align:center;color:var(--muted);font-size:11px;padding:15px}
+    .hidden{display:none!important}
+    @media(max-width:800px){.grid.settings{grid-template-columns:repeat(2,1fr)}.shift-card{grid-template-columns:repeat(3,1fr)}.shift-days-wrap{grid-column:1/-1}.kpis{grid-template-columns:repeat(2,1fr)}}
+    @media(max-width:560px){.topbar{padding:0 16px}.wrap{width:min(100% - 22px,1180px)}.hero{padding:23px 20px;border-radius:18px}.steps{gap:7px}.step{padding:10px 8px;gap:7px}.step span{display:none}.step-num{width:25px;height:25px;font-size:12px}.panel{padding:16px;border-radius:16px}.panel-head{align-items:center}.grid.settings{grid-template-columns:1fr 1fr}.shift-card{grid-template-columns:1fr 1fr}.shift-days-wrap{grid-column:1/-1}.form-grid{grid-template-columns:1fr}.span2{grid-column:auto}.privacy{font-size:10px;padding:6px 8px}.section-actions .btn{padding:7px 8px}}
+    @media print{body{background:#fff}.topbar,.hero,.steps,.config,.result-actions,.footer{display:none!important}.wrap{width:100%;margin:0}.panel{box-shadow:none;border:0;padding:0}.result{display:block!important}.result-banner{border:1px solid #aaa;color:#222;background:#fff}.schedule-table{font-size:10px}.kpi{padding:7px}.sub-table{break-inside:avoid}}
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><div class="brand-icon">✦</div><div>ShiftWell<small>AI 排班助手</small></div></div>
+    <div class="privacy">● 資料儲存在此瀏覽器</div>
+  </header>
+  <main class="wrap">
+    <section class="hero">
+      <div class="eyebrow">Shift planning, made thoughtful</div>
+      <h1>把每個人的需求，排進一張好班表。</h1>
+      <p>設定團隊技能、可上班日期、工時目標與班別偏好，再指定排班期間和各班人力需求。系統會兼顧休息、工時公平與班次偏好，並把無法滿足的需求清楚標出來。</p>
+      <div class="hero-note">✦ 目前使用可解釋的智慧排班引擎；不需要 API 金鑰，人員資料不會上傳。</div>
+    </section>
+    <div class="steps">
+      <div class="step"><div class="step-num">1</div><div><strong>建立團隊</strong><span>技能、時間與個人偏好</span></div></div>
+      <div class="step"><div class="step-num">2</div><div><strong>設定需求</strong><span>日期、班別與休息原則</span></div></div>
+      <div class="step"><div class="step-num">3</div><div><strong>生成班表</strong><span>檢查缺口並匯出分享</span></div></div>
+    </div>
+
+    <section class="panel config" id="staffSection">
+      <div class="panel-head">
+        <div class="panel-title"><div class="panel-icon">♙</div><div><h2>人員與個人需求</h2><p class="sub">用可排時段、技能和班別偏好描述需求，不需要填寫健康或敏感資訊。</p></div></div>
+        <div class="section-actions"><button class="btn" id="resetDemo">重設示範資料</button><button class="btn primary" id="addStaff">＋ 新增人員</button></div>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>人員</th><th>技能</th><th>可上班日</th><th>每週工時</th><th>班別偏好</th><th>操作</th></tr></thead>
+        <tbody id="staffRows"></tbody>
+      </table></div>
+    </section>
+
+    <section class="panel config" id="shiftSection">
+      <div class="panel-head">
+        <div class="panel-title"><div class="panel-icon">◷</div><div><h2>班別與每日人力需求</h2><p class="sub">每個班別可設定時段、所需技能、人數及適用星期。</p></div></div>
+        <button class="btn" id="addShift">＋ 新增班別</button>
+      </div>
+      <div class="shift-list" id="shiftList"></div>
+    </section>
+
+    <section class="panel config" id="periodSection">
+      <div class="panel-head">
+        <div class="panel-title"><div class="panel-icon">▦</div><div><h2>排班期間與休息規則</h2><p class="sub">硬性規則不會被偏好分數覆蓋；條件不足時會保留缺額並說明原因。</p></div></div>
+      </div>
+      <div class="grid settings">
+        <div class="field"><label for="startDate">開始日期</label><input id="startDate" type="date"></div>
+        <div class="field"><label for="endDate">結束日期</label><input id="endDate" type="date"></div>
+        <div class="field"><label for="minRest">兩班最少休息（小時）</label><input id="minRest" type="number" min="0" max="24" step="0.5"></div>
+        <div class="field"><label for="maxConsecutive">連續工作日上限</label><input id="maxConsecutive" type="number" min="1" max="7" step="1"></div>
+      </div>
+      <div class="controls">
+        <div class="controls-note">排班會先遵守可上班日、技能、每週工時上限、最少休息與連續工作日上限，再依目標工時、偏好班別與晚班接早班風險評分。規則可依你的工作場所調整。</div>
+        <button class="btn primary generate" id="generateBtn">✦ 生成建議班表</button>
+      </div>
+    </section>
+
+    <section class="panel result hidden" id="resultSection">
+      <div class="panel-head">
+        <div class="panel-title"><div class="panel-icon">✓</div><div><h2>排班建議</h2><p class="sub" id="resultSub"></p></div></div>
+        <div class="section-actions result-actions">
+          <button class="btn" id="exportCsv">下載 CSV</button>
+          <button class="btn" id="exportBackup">備份設定</button>
+          <button class="btn primary" id="printBtn">列印班表</button>
+        </div>
+      </div>
+      <div id="resultBanner" class="result-banner"></div>
+      <div class="kpis" id="kpis"></div>
+      <div class="table-wrap"><table class="schedule-table">
+        <thead><tr><th>日期</th><th>班別／時段</th><th>建議人員</th><th>未補人數</th></tr></thead>
+        <tbody id="scheduleRows"></tbody>
+      </table></div>
+      <div class="sub-table">
+        <h2 style="font-size:15px;margin:0 0 10px">個人工時概覽</h2>
+        <div class="table-wrap"><table>
+          <thead><tr><th>人員</th><th>已排工時</th><th>目標工時</th><th>班數</th><th>提醒</th></tr></thead>
+          <tbody id="workloadRows"></tbody>
+        </table></div>
+      </div>
+      <p class="disclaimer">這是依目前輸入條件產生的建議班表，請由管理者確認需求、休息安排及適用的工作規範後再發布。</p>
+    </section>
+    <div class="footer">ShiftWell · 排班建議由本機規則引擎產生，所有資料保存在目前瀏覽器。</div>
+  </main>
+
+  <dialog class="dialog" id="staffDialog">
+    <div class="dialog-inner">
+      <div class="dialog-head"><div><h2 id="dialogTitle">新增人員</h2><p class="sub">可以隨時修改或刪除人員資料。</p></div><button class="btn small" id="closeDialog" aria-label="關閉">✕</button></div>
+      <form id="staffForm">
+        <input type="hidden" id="staffId">
+        <div class="form-grid">
+          <div class="field span2"><label for="staffName">姓名或代稱</label><input id="staffName" type="text" maxlength="30" required placeholder="例如：小安"></div>
+          <div class="field span2"><span class="field-label">可承擔技能</span><div class="check-grid" id="roleOptions"></div></div>
+          <div class="field span2"><span class="field-label">固定可上班星期</span><div class="check-grid" id="availabilityOptions"></div></div>
+          <div class="field"><label for="targetHours">每週目標工時</label><input id="targetHours" type="number" min="0" max="168" required></div>
+          <div class="field"><label for="maxHours">每週最高工時</label><input id="maxHours" type="number" min="1" max="168" required></div>
+          <div class="field"><label for="preferredShift">偏好班別</label><select id="preferredShift"></select></div>
+          <div class="field"><label for="avoidShift">希望避開的班別</label><select id="avoidShift"></select></div>
+          <div class="field span2"><label for="blackoutDates">不能上班日期（選填）</label><input id="blackoutDates" type="text" placeholder="例如：2026-12-03, 2026-12-10"><span class="hint">用逗號分隔日期，格式為 YYYY-MM-DD。</span></div>
+        </div>
+        <div class="dialog-footer"><button class="btn" type="button" id="cancelDialog">取消</button><button class="btn primary" type="submit">儲存人員</button></div>
+      </form>
+    </div>
+  </dialog>
+  <div class="toast" id="toast" role="status"></div>
+  <script>
+    "use strict";
+    const STORE_KEY = "shiftwell.scheduler.v1";
+    const ROLE_OPTIONS = ["服務","廚務","收銀","管理","其他"];
+    const ANY_ROLE = "不限";
+    const DAY_NAMES = ["日","一","二","三","四","五","六"];
+    const state = loadState();
+    const $ = (selector) => document.querySelector(selector);
+    const staffRows = $("#staffRows");
+    const shiftList = $("#shiftList");
+    let toastTimer = null;
+
+    function pad(n){return String(n).padStart(2,"0")}
+    function isoDate(d){return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())}
+    function parseDate(value){const p=value.split("-").map(Number);return new Date(p[0],p[1]-1,p[2],12,0,0,0)}
+    function addDays(d,n){const next=new Date(d);next.setDate(next.getDate()+n);return next}
+    function nextMonday(){
+      const d=new Date();d.setHours(12,0,0,0);
+      const delta=(8-d.getDay())%7;
+      d.setDate(d.getDate()+delta);
+      return isoDate(d);
+    }
+    function defaultEnd(start){return isoDate(addDays(parseDate(start),6))}
+    function uid(prefix){return prefix+"-"+Math.random().toString(36).slice(2,9)}
+    function esc(v){return String(v==null?"":v).replace(/[&<>"']/g,(c)=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+    function showToast(message){
+      const node=$("#toast");node.textContent=message;node.classList.add("show");
+      clearTimeout(toastTimer);toastTimer=setTimeout(()=>node.classList.remove("show"),2400);
+    }
+    function demoState(){
+      const start=nextMonday();
+      const daySets=[[1,2,4,5,6],[2,3,4,5,0],[1,3,4,6,0],[1,2,5,6,0],[2,3,5,6,0],[1,3,4,5,0]];
+      const people=["示範小安","示範小庭","示範阿哲","示範小琳","示範小宇","示範小晴"];
+      const shifts=[
+        {id:"early",name:"早班",start:"09:00",end:"15:00",role:ANY_ROLE,headcount:1,days:[0,1,2,3,4,5,6]},
+        {id:"late",name:"晚班",start:"16:00",end:"22:00",role:ANY_ROLE,headcount:1,days:[0,1,2,3,4,5,6]}
+      ];
+      return {
+        staff:people.map((name,i)=>({id:"demo-"+i,name,roles:i===2?["服務","收銀"]:["服務"],availabilityDays:daySets[i],targetHours:18,maxHours:24,preferredShiftId:i%2===0?"early":"late",avoidShiftId:"",blackoutDates:[]})),
+        shifts:shifts,
+        settings:{startDate:start,endDate:defaultEnd(start),minRestHours:11,maxConsecutiveDays:5},
+        result:null
+      };
+    }
+    function loadState(){
+      try{
+        const raw=localStorage.getItem(STORE_KEY);
+        if(!raw)return demoState();
+        const parsed=JSON.parse(raw);
+        const base=demoState();
+        return {
+          staff:Array.isArray(parsed.staff)?parsed.staff:base.staff,
+          shifts:Array.isArray(parsed.shifts)?parsed.shifts:base.shifts,
+          settings:Object.assign(base.settings,parsed.settings||{}),
+          result:parsed.result||null
+        };
+      }catch(e){return demoState()}
+    }
+    function persist(){
+      try{localStorage.setItem(STORE_KEY,JSON.stringify(state))}
+      catch(e){showToast("瀏覽器無法儲存資料，請匯出備份。")}
+    }
+    function invalidateResult(){
+      state.result=null;
+      $("#resultSection").classList.add("hidden");
+    }
+    function dayLabel(day){return "週"+DAY_NAMES[day]}
+    function shiftName(id){const found=state.shifts.find(s=>s.id===id);return found?found.name:""}
+    function roleTags(roles){
+      if(!roles||!roles.length)return '<span class="tag soft">未設定</span>';
+      return roles.map(r=>'<span class="tag">'+esc(r)+'</span>').join("");
+    }
+    function renderStaff(){
+      if(!state.staff.length){
+        staffRows.innerHTML='<tr><td colspan="6"><div class="empty">尚未新增人員。請先建立團隊名單。</div></td></tr>';return;
+      }
+      staffRows.innerHTML=state.staff.map(p=>{
+        const days=(p.availabilityDays||[]).slice().sort((a,b)=>a-b).map(dayLabel).join("、")||"未設定";
+        const prefs=[p.preferredShiftId?'<span class="tag">偏好 '+esc(shiftName(p.preferredShiftId)||"已刪除班別")+'</span>':"",p.avoidShiftId?'<span class="tag soft">避開 '+esc(shiftName(p.avoidShiftId)||"已刪除班別")+'</span>':""].filter(Boolean).join(" ")||'<span class="muted">未設定</span>';
+        return '<tr><td><span class="person-name">'+esc(p.name)+'</span><br><span class="muted">'+esc(p.blackoutDates&&p.blackoutDates.length?p.blackoutDates.length+" 個不能上班日期":"")+'</span></td><td>'+roleTags(p.roles)+'</td><td>'+esc(days)+'</td><td>'+esc(p.targetHours)+' / '+esc(p.maxHours)+' 小時</td><td>'+prefs+'</td><td><div class="row-actions"><button class="btn small" data-person-action="edit" data-id="'+esc(p.id)+'">編輯</button><button class="btn small danger" data-person-action="delete" data-id="'+esc(p.id)+'">刪除</button></div></td></tr>';
+      }).join("");
+    }
+    function renderShifts(){
+      if(!state.shifts.length){shiftList.innerHTML='<div class="empty">尚未設定班別。請新增至少一個班別。</div>';return}
+      const roleChoices=[ANY_ROLE].concat(ROLE_OPTIONS);
+      shiftList.innerHTML=state.shifts.map(s=>{
+        const roleOptions=roleChoices.map(role=>'<option value="'+esc(role)+'" '+(s.role===role?"selected":"")+'>'+esc(role)+'</option>').join("");
+        const days=DAY_NAMES.map((d,i)=>'<label class="day-check"><input type="checkbox" data-shift-field="days" data-id="'+esc(s.id)+'" data-day="'+i+'" '+((s.days||[]).includes(i)?"checked":"")+'> '+d+'</label>').join("");
+        return '<article class="shift-card" data-shift="'+esc(s.id)+'">'+
+          '<div class="field"><label>班別名稱</label><input type="text" maxlength="20" data-shift-field="name" data-id="'+esc(s.id)+'" value="'+esc(s.name)+'"></div>'+
+          '<div class="field"><label>開始時間</label><input type="time" data-shift-field="start" data-id="'+esc(s.id)+'" value="'+esc(s.start)+'"></div>'+
+          '<div class="field"><label>結束時間</label><input type="time" data-shift-field="end" data-id="'+esc(s.id)+'" value="'+esc(s.end)+'"></div>'+
+          '<div class="field"><label>每班人數</label><input type="number" min="1" max="30" data-shift-field="headcount" data-id="'+esc(s.id)+'" value="'+esc(s.headcount)+'"></div>'+
+          '<div class="field"><label>所需技能</label><select data-shift-field="role" data-id="'+esc(s.id)+'">'+roleOptions+'</select></div>'+
+          '<div><button class="btn small danger" data-shift-action="delete" data-id="'+esc(s.id)+'">刪除</button></div>'+
+          '<div class="field shift-days-wrap"><label>適用星期</label><div class="shift-days">'+days+'</div></div>'+
+          '</article>';
+      }).join("");
+    }
+    function renderAll(){
+      renderStaff();renderShifts();
+      $("#startDate").value=state.settings.startDate;
+      $("#endDate").value=state.settings.endDate;
+      $("#minRest").value=state.settings.minRestHours;
+      $("#maxConsecutive").value=state.settings.maxConsecutiveDays;
+      if(state.result)renderResult(state.result);
+    }
+    function prefOptions(selected){
+      return '<option value="">無偏好</option>'+state.shifts.map(s=>'<option value="'+esc(s.id)+'" '+(selected===s.id?"selected":"")+'>'+esc(s.name)+'</option>').join("");
+    }
+    function renderStaffForm(person){
+      $("#roleOptions").innerHTML=ROLE_OPTIONS.map(role=>'<label class="check-chip"><input type="checkbox" name="personRole" value="'+esc(role)+'" '+(person&&person.roles.includes(role)?"checked":"")+'> '+esc(role)+'</label>').join("");
+      $("#availabilityOptions").innerHTML=DAY_NAMES.map((d,i)=>'<label class="check-chip"><input type="checkbox" name="personDay" value="'+i+'" '+(!person||(person.availabilityDays||[]).includes(i)?"checked":"")+'> 週'+d+'</label>').join("");
+      $("#preferredShift").innerHTML=prefOptions(person?person.preferredShiftId:"");
+      $("#avoidShift").innerHTML=prefOptions(person?person.avoidShiftId:"");
+      $("#staffId").value=person?person.id:"";
+      $("#staffName").value=person?person.name:"";
+      $("#targetHours").value=person?person.targetHours:24;
+      $("#maxHours").value=person?person.maxHours:36;
+      $("#blackoutDates").value=person?(person.blackoutDates||[]).join(", "):"";
+      $("#dialogTitle").textContent=person?"編輯人員":"新增人員";
+    }
+    function openPerson(id){
+      const person=state.staff.find(p=>p.id===id);
+      renderStaffForm(person||null);
+      $("#staffDialog").showModal();
+      setTimeout(()=>$("#staffName").focus(),30);
+    }
+    function savePerson(event){
+      event.preventDefault();
+      const id=$("#staffId").value;
+      const name=$("#staffName").value.trim();
+      const roles=[...document.querySelectorAll('input[name="personRole"]:checked')].map(x=>x.value);
+      const days=[...document.querySelectorAll('input[name="personDay"]:checked')].map(x=>Number(x.value));
+      const target=Number($("#targetHours").value);
+      const max=Number($("#maxHours").value);
+      if(!name){showToast("請填寫人員名稱。");return}
+      if(!roles.length){showToast("請至少選擇一項技能。");return}
+      if(!days.length){showToast("請至少選擇一個可上班日。");return}
+      if(max<target){showToast("每週最高工時需大於或等於目標工時。");return}
+      const person={id:id||uid("person"),name,roles,availabilityDays:days,targetHours:target,maxHours:max,preferredShiftId:$("#preferredShift").value,avoidShiftId:$("#avoidShift").value,blackoutDates:$("#blackoutDates").value.split(",").map(x=>x.trim()).filter(x=>/^\d{4}-\d{2}-\d{2}$/.test(x))};
+      const index=state.staff.findIndex(p=>p.id===person.id);
+      if(index<0)state.staff.push(person);else state.staff[index]=person;
+      invalidateResult();persist();renderAll();$("#staffDialog").close();showToast(index<0?"已新增人員。":"已更新人員。");
+    }
+    function addShift(){
+      state.shifts.push({id:uid("shift"),name:"新班別",start:"10:00",end:"16:00",role:ANY_ROLE,headcount:1,days:[0,1,2,3,4,5,6]});
+      invalidateResult();persist();renderAll();showToast("已新增班別，請設定時段與人數。");
+    }
+    function editShift(event){
+      const target=event.target;
+      const field=target.dataset.shiftField;
+      const id=target.dataset.id;
+      if(!field||!id)return;
+      const item=state.shifts.find(s=>s.id===id);if(!item)return;
+      if(field==="days"){
+        const day=Number(target.dataset.day);
+        const set=new Set(item.days||[]);
+        if(target.checked)set.add(day);else set.delete(day);
+        item.days=[...set].sort((a,b)=>a-b);
+      }else if(field==="headcount"){
+        item[field]=Math.max(1,Number(target.value)||1);
+      }else{
+        item[field]=target.value;
+      }
+      invalidateResult();persist();renderStaff();renderShifts();
+    }
+    function deleteShift(id){
+      state.shifts=state.shifts.filter(s=>s.id!==id);
+      state.staff.forEach(p=>{if(p.preferredShiftId===id)p.preferredShiftId="";if(p.avoidShiftId===id)p.avoidShiftId=""});
+      invalidateResult();persist();renderAll();showToast("已刪除班別。");
+    }
+    function updateSettings(){
+      state.settings.startDate=$("#startDate").value;
+      state.settings.endDate=$("#endDate").value;
+      state.settings.minRestHours=Math.min(24,Math.max(0,Number($("#minRest").value)||0));
+      state.settings.maxConsecutiveDays=Math.min(7,Math.max(1,Number($("#maxConsecutive").value)||1));
+      invalidateResult();persist();
+    }
+    function timeMinutes(time){const p=time.split(":").map(Number);return p[0]*60+p[1]}
+    function slotTimes(date,start,end){
+      const startAt=parseDate(date);const [sh,sm]=start.split(":").map(Number);startAt.setHours(sh,sm,0,0);
+      const endAt=parseDate(date);const [eh,em]=end.split(":").map(Number);endAt.setHours(eh,em,0,0);
+      if(timeMinutes(end)<=timeMinutes(start))endAt.setDate(endAt.getDate()+1);
+      return {startAt:startAt.getTime(),endAt:endAt.getTime(),hours:(endAt-startAt)/3600000};
+    }
+    function dateRange(start,end){
+      const result=[];let current=parseDate(start);const last=parseDate(end);
+      while(current<=last&&result.length<32){result.push(isoDate(current));current=addDays(current,1)}
+      return result;
+    }
+    function weekKey(date){
+      const d=parseDate(date);const monday=addDays(d,-((d.getDay()+6)%7));return isoDate(monday);
+    }
+    function daySerial(date){
+      const p=date.split("-").map(Number);return Math.floor(Date.UTC(p[0],p[1]-1,p[2])/86400000);
+    }
+    function maxStreak(dates){
+      const vals=[...new Set(dates)].map(daySerial).sort((a,b)=>a-b);let best=0;let run=0;let prev=null;
+      for(const n of vals){run=prev===null||n===prev+1?run+1:1;best=Math.max(best,run);prev=n}
+      return best;
+    }
+    function hasSkill(person,slot){return slot.role===ANY_ROLE||(person.roles||[]).includes(slot.role)}
+    function makeSlots(dates){
+      const slots=[];
+      dates.forEach(date=>{
+        const weekday=parseDate(date).getDay();
+        state.shifts.filter(s=>(s.days||[]).includes(weekday)).forEach(shift=>{
+          for(let i=0;i<Math.max(1,Number(shift.headcount)||1);i++){
+            const times=slotTimes(date,shift.start,shift.end);
+            slots.push({id:date+"|"+shift.id+"|"+i,date,weekday,shiftId:shift.id,shiftName:shift.name,start:shift.start,end:shift.end,role:shift.role,slotNo:i+1,startAt:times.startAt,endAt:times.endAt,hours:times.hours});
+          }
+        });
+      });
+      return slots;
+    }
+    function weeklyHours(assignments,employeeId,week){
+      return assignments.reduce((sum,a)=>a.employeeId===employeeId&&weekKey(a.slot.date)===week?sum+a.slot.hours:sum,0);
+    }
+    function respectsRest(slot,otherSlots,minRestHours){
+      const restMs=minRestHours*3600000;
+      for(const other of otherSlots){
+        if(slot.startAt<other.endAt&&other.startAt<slot.endAt)return false;
+        if(slot.startAt>=other.endAt&&slot.startAt-other.endAt<restMs)return false;
+        if(other.startAt>=slot.endAt&&other.startAt-slot.endAt<restMs)return false;
+      }
+      return true;
+    }
+    function eligible(person,slot,assignments){
+      if(!person.availabilityDays.includes(slot.weekday))return false;
+      if(!hasSkill(person,slot))return false;
+      if((person.blackoutDates||[]).includes(slot.date))return false;
+      const current=weeklyHours(assignments,person.id,weekKey(slot.date));
+      if(current+slot.hours>Number(person.maxHours)+.001)return false;
+      const own=assignments.filter(a=>a.employeeId===person.id).map(a=>a.slot);
+      if(!respectsRest(slot,own,state.settings.minRestHours))return false;
+      if(maxStreak(own.map(x=>x.date).concat(slot.date))>state.settings.maxConsecutiveDays)return false;
+      return true;
+    }
+    function isLate(slot){return timeMinutes(slot.start)>=15*60||timeMinutes(slot.end)>=20*60}
+    function isEarly(slot){return timeMinutes(slot.start)<10*60}
+    function assignmentScore(person,slot,assignments){
+      const current=weeklyHours(assignments,person.id,weekKey(slot.date));
+      const target=Math.max(1,Number(person.targetHours)||1);
+      let score=((current+slot.hours)/target)*75+(current/target)*8;
+      if(person.preferredShiftId===slot.shiftId)score-=22;
+      if(person.avoidShiftId===slot.shiftId)score+=32;
+      const own=assignments.filter(a=>a.employeeId===person.id).map(a=>a.slot);
+      const nextStreak=maxStreak(own.map(x=>x.date).concat(slot.date));
+      score+=Math.max(0,nextStreak-2)*4;
+      const weekend=slot.weekday===0||slot.weekday===6;
+      if(weekend)score+=own.filter(x=>x.weekday===0||x.weekday===6).length*2.5;
+      for(const other of own){
+        const gap=Math.abs(daySerial(slot.date)-daySerial(other.date));
+        if(gap===1){
+          const earlier=slot.startAt<other.startAt?slot:other;
+          const later=earlier===slot?other:slot;
+          if(isLate(earlier)&&isEarly(later))score+=18;
+          if(slot.shiftId===other.shiftId)score-=1;
+        }
+      }
+      return score+Math.random()*1.5;
+    }
+    function scheduleGrade(slots,assignments){
+      const missing=slots.length-assignments.length;
+      const ratios=state.staff.map(p=>{
+        const hours=assignments.filter(a=>a.employeeId===p.id).reduce((sum,a)=>sum+a.slot.hours,0);
+        return p.targetHours>0?hours/p.targetHours:0;
+      });
+      const mean=ratios.length?ratios.reduce((a,b)=>a+b,0)/ratios.length:0;
+      const variance=ratios.length?ratios.reduce((sum,x)=>sum+(x-mean)*(x-mean),0)/ratios.length:0;
+      let preferencePenalty=0;let lateEarly=0;
+      assignments.forEach(a=>{
+        const person=state.staff.find(p=>p.id===a.employeeId);
+        if(person&&person.avoidShiftId===a.slot.shiftId)preferencePenalty++;
+      });
+      state.staff.forEach(person=>{
+        const own=assignments.filter(a=>a.employeeId===person.id).map(a=>a.slot).sort((a,b)=>a.startAt-b.startAt);
+        for(let i=1;i<own.length;i++)if(isLate(own[i-1])&&isEarly(own[i])&&daySerial(own[i].date)-daySerial(own[i-1].date)===1)lateEarly++;
+      });
+      return missing*100000+variance*500+preferencePenalty*40+lateEarly*45;
+    }
+    function runAttempt(slots){
+      const assignments=[];
+      const ordered=slots.map(slot=>{
+        const count=state.staff.filter(p=>p.availabilityDays.includes(slot.weekday)&&hasSkill(p,slot)&&!(p.blackoutDates||[]).includes(slot.date)).length;
+        return {slot,count,tie:Math.random()};
+      }).sort((a,b)=>a.count-b.count||a.tie-b.tie).map(x=>x.slot);
+      for(const slot of ordered){
+        const choices=state.staff.filter(person=>eligible(person,slot,assignments)).map(person=>({person,score:assignmentScore(person,slot,assignments)})).sort((a,b)=>a.score-b.score);
+        if(!choices.length)continue;
+        let chosen=choices[0];
+        if(choices[1]&&choices[1].score<choices[0].score+7&&Math.random()<.18)chosen=choices[1];
+        assignments.push({slot,employeeId:chosen.person.id});
+      }
+      return {slots,assignments,grade:scheduleGrade(slots,assignments)};
+    }
+    function shortageReason(slot,assignments){
+      const available=state.staff.filter(p=>p.availabilityDays.includes(slot.weekday)&&hasSkill(p,slot)&&!(p.blackoutDates||[]).includes(slot.date));
+      if(!available.length){
+        const skilled=state.staff.some(p=>hasSkill(p,slot));
+        if(!skilled&&slot.role!==ANY_ROLE)return "沒有具備「"+slot.role+"」技能且可上班的人員";
+        return "沒有人員可在 "+dayLabel(slot.weekday)+" 上班或當日可排";
+      }
+      const blocked=new Set();
+      available.forEach(p=>{
+        const own=assignments.filter(a=>a.employeeId===p.id).map(a=>a.slot);
+        if(weeklyHours(assignments,p.id,weekKey(slot.date))+slot.hours>Number(p.maxHours)+.001)blocked.add("每週工時上限");
+        if(maxStreak(own.map(x=>x.date).concat(slot.date))>state.settings.maxConsecutiveDays)blocked.add("連續工作日上限");
+        if(!respectsRest(slot,own,state.settings.minRestHours))blocked.add("兩班休息間隔");
+      });
+      if(blocked.size)return "可排人員已受"+[...blocked].join("、")+"限制";
+      return "目前其他硬性條件下找不到可用人員";
+    }
+    function createSchedule(){
+      const start=$("#startDate").value;const end=$("#endDate").value;
+      if(!start||!end||end<start){showToast("請確認排班起訖日期。");return}
+      const dates=dateRange(start,end);
+      if(dates.length>31){showToast("一次最多排 31 天，請縮短日期範圍。");return}
+      if(!state.staff.length){showToast("請先新增至少一位人員。");return}
+      if(!state.shifts.length){showToast("請先新增至少一個班別。");return}
+      const invalid=state.shifts.find(s=>!s.name.trim()||!s.start||!s.end||timeMinutes(s.start)===timeMinutes(s.end));
+      if(invalid){showToast("請確認每個班別名稱與時間，開始和結束時間不可相同。");return}
+      updateSettings();
+      const slots=makeSlots(dates);
+      if(!slots.length){showToast("這段期間沒有排班需求，請檢查班別適用星期。");return}
+      let best=null;
+      for(let i=0;i<45;i++){
+        const trial=runAttempt(slots);
+        if(!best||trial.grade<best.grade)best=trial;
+      }
+      best.shortages=best.slots.filter(s=>!best.assignments.some(a=>a.slot.id===s.id)).map(s=>({slotId:s.id,reason:shortageReason(s,best.assignments)}));
+      best.createdAt=new Date().toISOString();
+      state.result=best;persist();renderResult(best);
+      $("#resultSection").classList.remove("hidden");
+      $("#resultSection").scrollIntoView({behavior:"smooth",block:"start"});
+    }
+    function formatDateLabel(date){
+      const d=parseDate(date);
+      return d.getFullYear()+"/"+pad(d.getMonth()+1)+"/"+pad(d.getDate())+"（"+dayLabel(d.getDay())+"）";
+    }
+    function renderResult(result){
+      const unfilled=result.slots.length-result.assignments.length;
+      const coverage=result.slots.length?Math.round(result.assignments.length/result.slots.length*100):0;
+      const used=new Set(result.assignments.map(a=>a.employeeId)).size;
+      const avoidCount=result.assignments.filter(a=>{
+        const p=state.staff.find(x=>x.id===a.employeeId);return p&&p.avoidShiftId===a.slot.shiftId;
+      }).length;
+      $("#resultSub").textContent=formatDateLabel(state.settings.startDate)+" 至 "+formatDateLabel(state.settings.endDate)+" · "+result.slots.length+" 個班位";
+      const banner=$("#resultBanner");
+      if(unfilled){
+        banner.className="result-banner warn";
+        banner.textContent="目前排出 "+result.assignments.length+" / "+result.slots.length+" 個班位，還有 "+unfilled+" 個缺額。請查看各班別原因，調整人力、技能或休息條件後重新生成。";
+      }else{
+        banner.className="result-banner";
+        banner.textContent="所有班位都已安排。系統遵守目前設定的可上班日、技能、週工時上限、休息間隔與連續工作日上限。";
+      }
+      $("#kpis").innerHTML=[
+        ["人力覆蓋率",coverage+"%","green"],
+        ["班位缺額",unfilled,"orange"],
+        ["已排人員",used+" 人","green"],
+        ["偏好衝突",avoidCount+" 班",avoidCount?"orange":"green"]
+      ].map(x=>'<div class="kpi"><span>'+x[0]+'</span><strong class="'+x[2]+'">'+x[1]+'</strong></div>').join("");
+      const groupMap=new Map();
+      result.slots.forEach(slot=>{
+        const key=slot.date+"|"+slot.shiftId;
+        if(!groupMap.has(key))groupMap.set(key,{date:slot.date,shiftName:slot.shiftName,start:slot.start,end:slot.end,role:slot.role,slots:[],people:[],reasons:[]});
+        groupMap.get(key).slots.push(slot);
+      });
+      result.assignments.forEach(a=>{
+        const key=a.slot.date+"|"+a.slot.shiftId;const group=groupMap.get(key);
+        const person=state.staff.find(p=>p.id===a.employeeId);
+        if(group&&person)group.people.push(person.name);
+      });
+      (result.shortages||[]).forEach(item=>{
+        const slot=result.slots.find(s=>s.id===item.slotId);if(!slot)return;
+        const group=groupMap.get(slot.date+"|"+slot.shiftId);if(group)group.reasons.push(item.reason);
+      });
+      const groups=[...groupMap.values()].sort((a,b)=>a.date.localeCompare(b.date)||a.start.localeCompare(b.start));
+      $("#scheduleRows").innerHTML=groups.map(g=>{
+        const missing=g.slots.length-g.people.length;
+        const names=g.people.map(name=>'<span class="assignment">'+esc(name)+'</span>').join("")||'<span class="muted">尚無安排</span>';
+        const vacancies=missing?'<span class="vacancy">缺 '+missing+' 人</span><div class="muted">'+esc([...new Set(g.reasons)].join("；"))+'</div>':'<span class="tag">已補滿</span>';
+        return '<tr><td><strong>'+esc(formatDateLabel(g.date))+'</strong></td><td><strong>'+esc(g.shiftName)+'</strong><br><span class="muted">'+esc(g.start)+'–'+esc(g.end)+' · '+esc(g.role)+'</span></td><td>'+names+'</td><td>'+vacancies+'</td></tr>';
+      }).join("");
+      const workload=state.staff.map(person=>{
+        const own=result.assignments.filter(a=>a.employeeId===person.id);
+        const hours=own.reduce((sum,a)=>sum+a.slot.hours,0);
+        const weeks=new Set(result.slots.map(s=>weekKey(s.date)));
+        const target=Number(person.targetHours)||0;
+        const max=Number(person.maxHours)||0;
+        let reminder="—";
+        if(!own.length)reminder="尚未排班";
+        else if(hours<target)reminder="低於週目標 "+target+" 小時（本期）";
+        else if(hours>max)reminder="請檢查週工時";
+        return '<tr><td><span class="person-name">'+esc(person.name)+'</span></td><td>'+hours.toFixed(1)+' 小時</td><td>'+target+' 小時／週</td><td>'+own.length+' 班</td><td><span class="muted">'+esc(reminder)+'</span></td></tr>';
+      });
+      $("#workloadRows").innerHTML=workload.join("")||'<tr><td colspan="5">目前沒有可顯示的人員。</td></tr>';
+      $("#resultSection").classList.remove("hidden");
+    }
+    function downloadFile(name,content,type){
+      const blob=new Blob([content],{type});const url=URL.createObjectURL(blob);
+      const a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+    }
+    function exportCsv(){
+      if(!state.result){showToast("請先生成班表。");return}
+      const lines=[["日期","星期","班別","開始","結束","技能","人員","狀態"]];
+      state.result.slots.forEach(slot=>{
+        const assigned=state.result.assignments.find(a=>a.slot.id===slot.id);
+        const person=assigned&&state.staff.find(p=>p.id===assigned.employeeId);
+        lines.push([slot.date,dayLabel(slot.weekday),slot.shiftName,slot.start,slot.end,slot.role,person?person.name:"",person?"已安排":shortageReason(slot,state.result.assignments)]);
+      });
+      const csv="\uFEFF"+lines.map(row=>row.map(value=>'"'+String(value).replace(/"/g,'""')+'"').join(",")).join("\r\n");
+      downloadFile("ShiftWell_班表.csv",csv,"text/csv;charset=utf-8");
+    }
+    function exportBackup(){
+      const backup={version:1,staff:state.staff,shifts:state.shifts,settings:state.settings};
+      downloadFile("ShiftWell_排班設定.json",JSON.stringify(backup,null,2),"application/json");
+    }
+
+    $("#addStaff").addEventListener("click",()=>openPerson(""));
+    $("#closeDialog").addEventListener("click",()=>$("#staffDialog").close());
+    $("#cancelDialog").addEventListener("click",()=>$("#staffDialog").close());
+    $("#staffForm").addEventListener("submit",savePerson);
+    staffRows.addEventListener("click",event=>{
+      const button=event.target.closest("[data-person-action]");if(!button)return;
+      const person=state.staff.find(p=>p.id===button.dataset.id);if(!person)return;
+      if(button.dataset.personAction==="edit")openPerson(person.id);
+      else if(confirm("確定刪除「"+person.name+"」？")){state.staff=state.staff.filter(p=>p.id!==person.id);invalidateResult();persist();renderAll();showToast("已刪除人員。")}
+    });
+    $("#addShift").addEventListener("click",addShift);
+    shiftList.addEventListener("change",editShift);
+    shiftList.addEventListener("click",event=>{
+      const button=event.target.closest("[data-shift-action]");if(button&&confirm("確定刪除此班別？"))deleteShift(button.dataset.id);
+    });
+    ["startDate","endDate","minRest","maxConsecutive"].forEach(id=>$("#"+id).addEventListener("change",updateSettings));
+    $("#generateBtn").addEventListener("click",createSchedule);
+    $("#resetDemo").addEventListener("click",()=>{
+      if(confirm("重設後會以示範人員和班別取代目前資料。確定重設嗎？")){
+        const fresh=demoState();state.staff=fresh.staff;state.shifts=fresh.shifts;state.settings=fresh.settings;state.result=null;persist();renderAll();showToast("已載入示範資料。");
+      }
+    });
+    $("#exportCsv").addEventListener("click",exportCsv);
+    $("#exportBackup").addEventListener("click",exportBackup);
+    $("#printBtn").addEventListener("click",()=>window.print());
+    renderAll();
+  </script>
+</body>
+</html>
