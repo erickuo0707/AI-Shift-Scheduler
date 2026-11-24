@@ -269,10 +269,11 @@
           if(!Object.prototype.hasOwnProperty.call(availabilityByMonth,month)&&Array.isArray(person.availabilityDays)){
             availabilityByMonth[month]=monthDates(month).filter(date=>person.availabilityDays.includes(parseDate(date).getDay()));
           }
-          const isLegacyDemo=String(person.id||"").indexOf("demo-")===0&&(person.type===undefined||Number(person.maxHours)===24);
+          const isDemo=String(person.id||"").indexOf("demo-")===0;
+          const isLegacyDemo=isDemo&&(person.type===undefined||Number(person.maxHours)===24);
           const demoTypes=["PT","PT","正職","正職","PT","正職"];
           const type=person.type==="正職"?"正職":person.type==="PT"?"PT":isLegacyDemo?(demoTypes[index]||"PT"):"PT";
-          if(migrateMonthDefault&&isLegacyDemo&&!Object.prototype.hasOwnProperty.call(availabilityByMonth,month)&&Array.isArray(availabilityByMonth[savedMonth])){
+          if(migrateMonthDefault&&isDemo&&!Object.prototype.hasOwnProperty.call(availabilityByMonth,month)&&Array.isArray(availabilityByMonth[savedMonth])){
             const weekdays=new Set(availabilityByMonth[savedMonth].map(date=>parseDate(date).getDay()));
             availabilityByMonth[month]=monthDates(month).filter(date=>weekdays.has(parseDate(date).getDay()));
           }
