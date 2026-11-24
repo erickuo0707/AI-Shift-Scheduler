@@ -267,14 +267,16 @@
           if(!Object.prototype.hasOwnProperty.call(availabilityByMonth,month)&&Array.isArray(person.availabilityDays)){
             availabilityByMonth[month]=monthDates(month).filter(date=>person.availabilityDays.includes(parseDate(date).getDay()));
           }
-          const type=person.type==="正職"?"正職":"PT";
+          const isLegacyDemo=String(person.id||"").indexOf("demo-")===0&&person.type===undefined;
+          const demoTypes=["PT","PT","正職","正職","PT","正職"];
+          const type=person.type==="正職"?"正職":person.type==="PT"?"PT":isLegacyDemo?(demoTypes[index]||"PT"):"PT";
           return {
             id:person.id||"person-"+index,
             name:person.name||"未命名",
             type,
             availabilityByMonth,
-            targetHours:person.targetHours===undefined?(type==="正職"?36:20):Number(person.targetHours),
-            maxHours:person.maxHours===undefined?(type==="正職"?40:28):Number(person.maxHours),
+            targetHours:person.targetHours===undefined||isLegacyDemo?(type==="正職"?36:20):Number(person.targetHours),
+            maxHours:person.maxHours===undefined||isLegacyDemo?(type==="正職"?40:28):Number(person.maxHours),
             preferredShiftId:person.preferredShiftId||"",
             avoidShiftId:person.avoidShiftId||""
           };
