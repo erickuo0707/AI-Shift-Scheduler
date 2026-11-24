@@ -591,13 +591,14 @@
       const workload=state.staff.map(person=>{
         const own=result.assignments.filter(a=>a.employeeId===person.id);
         const hours=own.reduce((sum,a)=>sum+a.slot.hours,0);
-        const weeks=new Set(result.slots.map(s=>weekKey(s.date)));
         const target=Number(person.targetHours)||0;
         const max=Number(person.maxHours)||0;
+        const byWeek=new Map();
+        own.forEach(a=>{const key=weekKey(a.slot.date);byWeek.set(key,(byWeek.get(key)||0)+a.slot.hours)});
         let reminder="—";
         if(!own.length)reminder="尚未排班";
-        else if(hours<target)reminder="低於週目標 "+target+" 小時（本期）";
-        else if(hours>max)reminder="請檢查週工時";
+        else if([...byWeek.values()].some(value=>value>max))reminder="某週超過工時上限";
+        else if(person.avoidShiftId&&own.some(a=>a.slot.shiftId===person.avoidShiftId))reminder="含避開班別";
         return '<tr><td><span class="person-name">'+esc(person.name)+'</span></td><td>'+hours.toFixed(1)+' 小時</td><td>'+target+' 小時／週</td><td>'+own.length+' 班</td><td><span class="muted">'+esc(reminder)+'</span></td></tr>';
       });
       $("#workloadRows").innerHTML=workload.join("")||'<tr><td colspan="5">目前沒有可顯示的人員。</td></tr>';
