@@ -122,18 +122,18 @@
       <div class="hero-note">✦ 目前使用可解釋的智慧排班引擎；不需要 API 金鑰，人員資料不會上傳。</div>
     </section>
     <div class="steps">
-      <div class="step"><div class="step-num">1</div><div><strong>建立團隊</strong><span>PT／正職與本月可上班日</span></div></div>
+      <div class="step"><div class="step-num">1</div><div><strong>建立團隊</strong><span>PT／正職與指定月份的可上班日</span></div></div>
       <div class="step"><div class="step-num">2</div><div><strong>設定需求</strong><span>日期、班別與休息原則</span></div></div>
       <div class="step"><div class="step-num">3</div><div><strong>生成班表</strong><span>檢查缺口並匯出分享</span></div></div>
     </div>
 
     <section class="panel config" id="staffSection">
       <div class="panel-head">
-        <div class="panel-title"><div class="panel-icon">♙</div><div><h2>人員與個人需求</h2><p class="sub">設定每月可上班日期、每週目標工時與班別偏好，不需要填寫健康或敏感資訊。</p></div></div>
+        <div class="panel-title"><div class="panel-icon">♙</div><div><h2>人員與個人需求</h2><p class="sub">設定指定月份可上班日期、每週最高工時與班別偏好，不需要填寫健康或敏感資訊。</p></div></div>
         <div class="section-actions"><button class="btn" id="resetDemo">重設示範資料</button><button class="btn primary" id="addStaff">＋ 新增人員</button></div>
       </div>
       <div class="table-wrap"><table>
-        <thead><tr><th>人員</th><th>類型</th><th>可上班日</th><th>每週工時</th><th>班別偏好</th><th>操作</th></tr></thead>
+        <thead><tr><th>人員</th><th>類型</th><th>可上班日</th><th>每週工時上限</th><th>班別偏好</th><th>操作</th></tr></thead>
         <tbody id="staffRows"></tbody>
       </table></div>
     </section>
@@ -157,7 +157,7 @@
       </div>
 
       <div class="controls">
-        <div class="controls-note">排班會先遵守當月可上班日期、每週工時上限、最少休息與連續工作日上限，再依目標工時、班別偏好與晚班接早班風險評分。規則可依你的工作場所調整。</div>
+        <div class="controls-note">排班會先遵守指定月份可上班日期、每週工時上限、最少休息與連續工作日上限，再平衡人員相對工時負擔，並考量班別偏好與晚班接早班風險。規則可依你的工作場所調整。</div>
         <button class="btn primary generate" id="generateBtn">✦ 生成建議班表</button>
       </div>
     </section>
@@ -180,7 +180,7 @@
       <div class="sub-table">
         <h2 style="font-size:15px;margin:0 0 10px">個人工時概覽</h2>
         <div class="table-wrap"><table>
-          <thead><tr><th>人員</th><th>已排工時</th><th>目標工時</th><th>班數</th><th>提醒</th></tr></thead>
+          <thead><tr><th>人員</th><th>已排工時</th><th>班數</th><th>提醒</th></tr></thead>
           <tbody id="workloadRows"></tbody>
         </table></div>
       </div>
@@ -197,8 +197,7 @@
         <div class="form-grid">
           <div class="field span2"><label for="staffName">姓名或代稱</label><input id="staffName" type="text" maxlength="30" required placeholder="例如：小安"></div>
           <div class="field"><label for="employmentType">人員類型</label><select id="employmentType"><option value="PT">PT</option><option value="正職">正職</option></select></div>
-          <div class="field span2"><span class="field-label">本月可上班日期</span><span class="hint" id="availabilityMonthLabel"></span><div class="availability-calendar" id="availabilityOptions"></div><span class="hint">勾選可以排班的日期；每個月份可分別設定。</span></div>
-          <div class="field"><label for="targetHours">每週目標工時</label><input id="targetHours" type="number" min="0" max="168" required></div>
+          <div class="field span2"><span class="field-label">指定月份可上班日期</span><span class="hint" id="availabilityMonthLabel"></span><div class="availability-calendar" id="availabilityOptions"></div><span class="hint">勾選可以排班的日期；每個月份可分別設定。</span></div>
           <div class="field"><label for="maxHours">每週最高工時</label><input id="maxHours" type="number" min="1" max="168" required></div>
           <div class="field"><label for="preferredShift">偏好班別</label><select id="preferredShift"></select></div>
           <div class="field"><label for="avoidShift">希望避開的班別</label><select id="avoidShift"></select></div>
@@ -224,6 +223,7 @@
     function parseDate(value){const p=value.split("-").map(Number);return new Date(p[0],p[1]-1,p[2],12,0,0,0)}
     function addDays(d,n){const next=new Date(d);next.setDate(next.getDate()+n);return next}
     function currentMonth(){const d=new Date();return d.getFullYear()+"-"+pad(d.getMonth()+1)}
+    function nextMonth(){const d=new Date();d.setDate(1);d.setMonth(d.getMonth()+1);return d.getFullYear()+"-"+pad(d.getMonth()+1)}
     function monthDates(month){
       const parts=month.split("-").map(Number);
       const count=new Date(parts[0],parts[1],0).getDate();
@@ -236,7 +236,7 @@
       clearTimeout(toastTimer);toastTimer=setTimeout(()=>node.classList.remove("show"),2400);
     }
     function demoState(){
-      const month=currentMonth();
+      const month=nextMonth();
       const daySets=[[1,2,4,5,6],[2,3,4,5,0],[1,3,4,6,0],[1,2,5,6,0],[2,3,5,6,0],[1,3,4,5,0]];
       const people=["示範小安","示範小庭","示範阿哲","示範小琳","示範小宇","示範小晴"];
       const types=["PT","PT","正職","正職","PT","正職"];
@@ -248,9 +248,9 @@
         const type=types[i];
         const availabilityByMonth={};
         availabilityByMonth[month]=monthDates(month).filter(date=>daySets[i].includes(parseDate(date).getDay()));
-        return {id:"demo-"+i,name,type,availabilityByMonth,targetHours:type==="正職"?36:20,maxHours:type==="正職"?40:28,preferredShiftId:i%2===0?"early":"late",avoidShiftId:""};
+        return {id:"demo-"+i,name,type,availabilityByMonth,maxHours:type==="正職"?40:28,preferredShiftId:i%2===0?"early":"late",avoidShiftId:""};
       });
-      return {staff,shifts,settings:{month,minRestHours:11,maxConsecutiveDays:5},result:null};
+      return {staff,shifts,settings:{month,minRestHours:11,maxConsecutiveDays:5,monthDefaultVersion:1},result:null};
     }
 
     function loadState(){
@@ -260,22 +260,27 @@
         const parsed=JSON.parse(raw);
         const base=demoState();
         const oldSettings=parsed.settings||{};
-        const month=oldSettings.month||(oldSettings.startDate?oldSettings.startDate.slice(0,7):base.settings.month);
+        const savedMonth=oldSettings.month||(oldSettings.startDate?oldSettings.startDate.slice(0,7):base.settings.month);
+        const migrateMonthDefault=oldSettings.monthDefaultVersion!==1&&savedMonth===currentMonth();
+        const month=migrateMonthDefault?nextMonth():savedMonth;
         const sourceStaff=Array.isArray(parsed.staff)?parsed.staff:base.staff;
         const staff=sourceStaff.map((person,index)=>{
           const availabilityByMonth=Object.assign({},person.availabilityByMonth||{});
           if(!Object.prototype.hasOwnProperty.call(availabilityByMonth,month)&&Array.isArray(person.availabilityDays)){
             availabilityByMonth[month]=monthDates(month).filter(date=>person.availabilityDays.includes(parseDate(date).getDay()));
           }
-          const isLegacyDemo=String(person.id||"").indexOf("demo-")===0&&(person.type===undefined||(person.type==="PT"&&Number(person.targetHours)===18&&Number(person.maxHours)===24));
+          const isLegacyDemo=String(person.id||"").indexOf("demo-")===0&&(person.type===undefined||Number(person.maxHours)===24);
           const demoTypes=["PT","PT","正職","正職","PT","正職"];
           const type=person.type==="正職"?"正職":person.type==="PT"?"PT":isLegacyDemo?(demoTypes[index]||"PT"):"PT";
+          if(migrateMonthDefault&&isLegacyDemo&&!Object.prototype.hasOwnProperty.call(availabilityByMonth,month)&&Array.isArray(availabilityByMonth[savedMonth])){
+            const weekdays=new Set(availabilityByMonth[savedMonth].map(date=>parseDate(date).getDay()));
+            availabilityByMonth[month]=monthDates(month).filter(date=>weekdays.has(parseDate(date).getDay()));
+          }
           return {
             id:person.id||"person-"+index,
             name:person.name||"未命名",
             type,
             availabilityByMonth,
-            targetHours:person.targetHours===undefined||isLegacyDemo?(type==="正職"?36:20):Number(person.targetHours),
             maxHours:person.maxHours===undefined||isLegacyDemo?(type==="正職"?40:28):Number(person.maxHours),
             preferredShiftId:person.preferredShiftId||"",
             avoidShiftId:person.avoidShiftId||""
@@ -285,7 +290,7 @@
         return {
           staff,
           shifts,
-          settings:{month,minRestHours:oldSettings.minRestHours===undefined?base.settings.minRestHours:oldSettings.minRestHours,maxConsecutiveDays:oldSettings.maxConsecutiveDays===undefined?base.settings.maxConsecutiveDays:oldSettings.maxConsecutiveDays},
+          settings:{month,minRestHours:oldSettings.minRestHours===undefined?base.settings.minRestHours:oldSettings.minRestHours,maxConsecutiveDays:oldSettings.maxConsecutiveDays===undefined?base.settings.maxConsecutiveDays:oldSettings.maxConsecutiveDays,monthDefaultVersion:1},
           result:null
         };
       }catch(e){return demoState()}
@@ -316,7 +321,7 @@
         const dates=personAvailabilityDates(p).map(date=>Number(date.slice(-2))).join("、");
         const availability=dates?monthLabel+"："+dates+" 日":"尚未勾選";
         const prefs=[p.preferredShiftId?'<span class="tag">偏好 '+esc(shiftName(p.preferredShiftId)||"已刪除班別")+'</span>':"",p.avoidShiftId?'<span class="tag soft">避開 '+esc(shiftName(p.avoidShiftId)||"已刪除班別")+'</span>':""].filter(Boolean).join(" ")||'<span class="muted">未設定</span>';
-        return '<tr><td><span class="person-name">'+esc(p.name)+'</span></td><td><span class="tag">'+esc(p.type)+'</span></td><td>'+esc(availability)+'</td><td>'+esc(p.targetHours)+' / '+esc(p.maxHours)+' 小時</td><td>'+prefs+'</td><td><div class="row-actions"><button class="btn small" data-person-action="edit" data-id="'+esc(p.id)+'">編輯</button><button class="btn small danger" data-person-action="delete" data-id="'+esc(p.id)+'">刪除</button></div></td></tr>';
+        return '<tr><td><span class="person-name">'+esc(p.name)+'</span></td><td><span class="tag">'+esc(p.type)+'</span></td><td>'+esc(availability)+'</td><td>'+esc(p.maxHours)+' 小時／週</td><td>'+prefs+'</td><td><div class="row-actions"><button class="btn small" data-person-action="edit" data-id="'+esc(p.id)+'">編輯</button><button class="btn small danger" data-person-action="delete" data-id="'+esc(p.id)+'">刪除</button></div></td></tr>';
       }).join("");
     }
 
@@ -361,7 +366,6 @@
       $("#staffName").value=person?person.name:"";
       $("#employmentType").value=person?person.type:"PT";
       const type=person?person.type:"PT";
-      $("#targetHours").value=person?person.targetHours:(type==="正職"?36:20);
       $("#maxHours").value=person?person.maxHours:(type==="正職"?40:28);
       $("#dialogTitle").textContent=person?"編輯人員":"新增人員";
     }
@@ -378,14 +382,12 @@
       const name=$("#staffName").value.trim();
       const type=$("#employmentType").value;
       const dates=[...document.querySelectorAll('input[name="availabilityDate"]:checked')].map(x=>x.value);
-      const target=Number($("#targetHours").value);
       const max=Number($("#maxHours").value);
       if(!name){showToast("請填寫人員名稱。");return}
-      if(max<target){showToast("每週最高工時需大於或等於目標工時。");return}
       const existing=state.staff.find(p=>p.id===id);
       const availabilityByMonth=Object.assign({},existing&&existing.availabilityByMonth?existing.availabilityByMonth:{});
       availabilityByMonth[state.settings.month]=dates;
-      const person={id:id||uid("person"),name,type,availabilityByMonth,targetHours:target,maxHours:max,preferredShiftId:$("#preferredShift").value,avoidShiftId:$("#avoidShift").value};
+      const person={id:id||uid("person"),name,type,availabilityByMonth,maxHours:max,preferredShiftId:$("#preferredShift").value,avoidShiftId:$("#avoidShift").value};
       const index=state.staff.findIndex(p=>p.id===person.id);
       if(index<0)state.staff.push(person);else state.staff[index]=person;
       invalidateResult();persist();renderAll();$("#staffDialog").close();showToast(index<0?"已新增人員。":"已更新人員。");
@@ -499,8 +501,8 @@
     function isEarly(slot){return timeMinutes(slot.start)<10*60}
     function assignmentScore(person,slot,assignments){
       const current=weeklyHours(assignments,person.id,weekKey(slot.date));
-      const target=Math.max(1,Number(person.targetHours)||1);
-      let score=((current+slot.hours)/target)*75+(current/target)*8;
+      const capacity=Math.max(1,Number(person.maxHours)||1);
+      let score=((current+slot.hours)/capacity)*75+(current/capacity)*8;
       if(person.preferredShiftId===slot.shiftId)score-=22;
       if(person.avoidShiftId===slot.shiftId)score+=32;
       const own=assignments.filter(a=>a.employeeId===person.id).map(a=>a.slot);
@@ -521,9 +523,10 @@
     }
     function scheduleGrade(slots,assignments){
       const missing=slots.length-assignments.length;
+      const weeks=[...new Set(slots.map(slot=>weekKey(slot.date)))];
       const ratios=state.staff.map(p=>{
-        const hours=assignments.filter(a=>a.employeeId===p.id).reduce((sum,a)=>sum+a.slot.hours,0);
-        return p.targetHours>0?hours/p.targetHours:0;
+        const capacity=Math.max(1,Number(p.maxHours)||1);
+        return weeks.length?weeks.reduce((sum,week)=>sum+weeklyHours(assignments,p.id,week)/capacity,0)/weeks.length:0;
       });
       const mean=ratios.length?ratios.reduce((a,b)=>a+b,0)/ratios.length:0;
       const variance=ratios.length?ratios.reduce((sum,x)=>sum+(x-mean)*(x-mean),0)/ratios.length:0;
@@ -644,7 +647,6 @@
       const workload=state.staff.map(person=>{
         const own=result.assignments.filter(a=>a.employeeId===person.id);
         const hours=own.reduce((sum,a)=>sum+a.slot.hours,0);
-        const target=Number(person.targetHours)||0;
         const max=Number(person.maxHours)||0;
         const byWeek=new Map();
         own.forEach(a=>{const key=weekKey(a.slot.date);byWeek.set(key,(byWeek.get(key)||0)+a.slot.hours)});
@@ -652,9 +654,9 @@
         if(!own.length)reminder="尚未排班";
         else if([...byWeek.values()].some(value=>value>max))reminder="某週超過工時上限";
         else if(person.avoidShiftId&&own.some(a=>a.slot.shiftId===person.avoidShiftId))reminder="含避開班別";
-        return '<tr><td><span class="person-name">'+esc(person.name)+'</span> <span class="tag">'+esc(person.type)+'</span></td><td>'+hours.toFixed(1)+' 小時</td><td>'+target+' 小時／週</td><td>'+own.length+' 班</td><td><span class="muted">'+esc(reminder)+'</span></td></tr>';
+        return '<tr><td><span class="person-name">'+esc(person.name)+'</span> <span class="tag">'+esc(person.type)+'</span></td><td>'+hours.toFixed(1)+' 小時</td><td>'+own.length+' 班</td><td><span class="muted">'+esc(reminder)+'</span></td></tr>';
       });
-      $("#workloadRows").innerHTML=workload.join("")||'<tr><td colspan="5">目前沒有可顯示的人員。</td></tr>';
+      $("#workloadRows").innerHTML=workload.join("")||'<tr><td colspan="4">目前沒有可顯示的人員。</td></tr>';
       $("#resultSection").classList.remove("hidden");
     }
 
@@ -683,7 +685,7 @@
     $("#closeDialog").addEventListener("click",()=>$("#staffDialog").close());
     $("#cancelDialog").addEventListener("click",()=>$("#staffDialog").close());
     $("#staffForm").addEventListener("submit",savePerson);
-    $("#employmentType").addEventListener("change",()=>{const fullTime=$("#employmentType").value==="正職";$("#targetHours").value=fullTime?36:20;$("#maxHours").value=fullTime?40:28});
+    $("#employmentType").addEventListener("change",()=>{const fullTime=$("#employmentType").value==="正職";$("#maxHours").value=fullTime?40:28});
     staffRows.addEventListener("click",event=>{
       const button=event.target.closest("[data-person-action]");if(!button)return;
       const person=state.staff.find(p=>p.id===button.dataset.id);if(!person)return;
