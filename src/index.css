@@ -1,0 +1,150 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: Inter, "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif;
+  --color-ink: #e8eaff;
+  --color-dim: #9aa0c3;
+  --color-line: rgb(255 255 255 / 0.09);
+  --color-brand: #8b7cff;
+  --color-brand-2: #22d3ee;
+  --color-brand-3: #f472b6;
+  --animate-shimmer-slide: shimmer-slide var(--speed) ease-in-out infinite alternate;
+  --animate-spin-around: spin-around calc(var(--speed) * 2) infinite linear;
+  --animate-shiny: shiny 6s ease-in-out infinite;
+  --animate-gradient: gradient 6s linear infinite;
+  --animate-aurora: aurora 18s ease-in-out infinite alternate;
+
+  @keyframes shimmer-slide { to { transform: translate(calc(100cqw - 100%), 0); } }
+  @keyframes spin-around {
+    0% { transform: translateZ(0) rotate(0); }
+    15%, 35% { transform: translateZ(0) rotate(90deg); }
+    65%, 85% { transform: translateZ(0) rotate(270deg); }
+    100% { transform: translateZ(0) rotate(360deg); }
+  }
+  @keyframes shiny {
+    0%, 90%, 100% { background-position: calc(-100% - var(--shiny-width)) 0; }
+    30%, 60% { background-position: calc(100% + var(--shiny-width)) 0; }
+  }
+  @keyframes gradient { to { background-position: 200% center; } }
+  @keyframes aurora {
+    0% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(6%, -4%) scale(1.15); }
+    100% { transform: translate(-5%, 5%) scale(0.95); }
+  }
+}
+
+@property --beam-angle { syntax: "<angle>"; initial-value: 0deg; inherits: false; }
+@keyframes beam-rotate { to { --beam-angle: 360deg; } }
+
+html { font-size: 18px; scroll-behavior: smooth; color-scheme: dark; }
+body {
+  margin: 0;
+  background: #05060f;
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+::selection { background: rgb(139 124 255 / 0.4); }
+
+/* 表單元件 */
+.input {
+  width: 100%; min-width: 0;
+  border: 1.5px solid rgb(255 255 255 / 0.1);
+  border-radius: 14px;
+  padding: 0.7rem 0.9rem;
+  background: rgb(255 255 255 / 0.04);
+  color: var(--color-ink);
+  font-size: 1rem;
+  outline: none;
+  transition: border-color .15s, box-shadow .15s, background .15s;
+}
+.input:hover { border-color: rgb(255 255 255 / 0.2); }
+.input:focus { border-color: var(--color-brand); background: rgb(139 124 255 / 0.08); box-shadow: 0 0 0 4px rgb(139 124 255 / 0.2); }
+.input::-webkit-calendar-picker-indicator { filter: invert(0.8); cursor: pointer; }
+select.input option { background: #12142a; }
+input[type="checkbox"] { accent-color: var(--color-brand); width: 1.1rem; height: 1.1rem; }
+.label { font-size: 0.9rem; font-weight: 800; color: #c4c8ec; }
+
+/* 按鈕 */
+.btn {
+  display: inline-flex; align-items: center; gap: .4rem; white-space: nowrap;
+  border: 1.5px solid rgb(255 255 255 / 0.12);
+  background: rgb(255 255 255 / 0.04);
+  color: var(--color-ink);
+  border-radius: 14px; padding: .6rem 1.05rem;
+  font-size: .9rem; font-weight: 800; cursor: pointer;
+  transition: all .18s;
+}
+.btn:hover { border-color: rgb(139 124 255 / 0.6); background: rgb(139 124 255 / 0.12); transform: translateY(-1px); }
+.btn-danger { color: #fb7185; border-color: rgb(251 113 133 / 0.3); }
+.btn-danger:hover { background: rgb(251 113 133 / 0.12); border-color: rgb(251 113 133 / 0.6); }
+.btn-sm { padding: .4rem .75rem; font-size: .85rem; border-radius: 11px; }
+.btn-primary {
+  border-color: transparent; color: #fff;
+  background: linear-gradient(135deg, #7c6cff, #a855f7 55%, #22d3ee);
+  box-shadow: 0 10px 28px -10px rgb(139 124 255 / 0.8);
+}
+.btn-primary:hover { filter: brightness(1.1); border-color: transparent; }
+
+/* 表格 */
+.table-wrap { overflow: auto; border: 1px solid var(--color-line); border-radius: 18px; background: rgb(255 255 255 / 0.02); }
+.data-table { width: 100%; border-collapse: collapse; min-width: 980px; }
+.data-table th { background: rgb(255 255 255 / 0.04); text-align: left; color: #aeb3d9; font-size: .85rem; letter-spacing: .05em; font-weight: 850; padding: .85rem 1rem; white-space: nowrap; }
+.data-table td { padding: .9rem 1rem; border-top: 1px solid var(--color-line); font-size: .95rem; vertical-align: middle; }
+.data-table tbody tr { transition: background .15s; }
+.data-table tbody tr:hover td { background: rgb(139 124 255 / 0.05); }
+.tag { display: inline-flex; white-space: nowrap; background: rgb(139 124 255 / 0.15); color: #c9c2ff; padding: .15rem .65rem; border-radius: 999px; font-size: .78rem; font-weight: 800; margin: 2px 4px 2px 0; border: 1px solid rgb(139 124 255 / 0.3); }
+.tag-soft { background: rgb(255 255 255 / 0.05); color: var(--color-dim); border-color: rgb(255 255 255 / 0.1); }
+.tag-cyan { background: rgb(34 211 238 / 0.12); color: #67e8f9; border-color: rgb(34 211 238 / 0.3); }
+
+/* 週班表 */
+.rota table { width: 100%; min-width: 1180px; table-layout: fixed; border-collapse: collapse; }
+.rota th, .rota td { text-align: center; vertical-align: middle; padding: .6rem .35rem; font-size: .85rem; border-top: 1px solid var(--color-line); }
+.rota th:first-child, .rota td:first-child { text-align: left; width: 160px; padding-left: 1rem; }
+.rota thead th { background: rgb(255 255 255 / 0.04); color: #aeb3d9; font-weight: 800; border-top: 0; }
+.rota .date-row th { background: rgb(139 124 255 / 0.12); color: #d6d0ff; font-size: .9rem; }
+.rota .outside { background: rgb(0 0 0 / 0.25); color: #4b4f6e; }
+.rota .staff-name { font-weight: 850; font-size: .9rem; color: var(--color-ink); }
+.rota .off { color: #5d6285; font-weight: 850; }
+.rota .prefer { color: #fbbf24; font-weight: 850; }
+.rota .rest { color: #7c82a8; }
+.rota .work {
+  display: inline-grid; white-space: nowrap; padding: .25rem .5rem; border-radius: 9px;
+  background: linear-gradient(135deg, rgb(124 108 255 / 0.25), rgb(34 211 238 / 0.18));
+  border: 1px solid rgb(139 124 255 / 0.4); color: #e4e0ff; font-size: .8rem; font-weight: 800;
+}
+.rota .work small { font-size: .68rem; font-weight: 650; color: #a5f3fc; }
+.rota .work.requested { background: rgb(251 191 36 / 0.15); border-color: rgb(251 191 36 / 0.45); color: #fde68a; }
+.rota .work em { font-size: .68rem; font-style: normal; font-weight: 850; }
+.rota .shortage-row th, .rota .shortage-row td { background: rgb(251 113 133 / 0.06); }
+.rota .vacancy { display: block; font-weight: 800; color: #fb7185; }
+.rota .reason { display: block; font-size: .68rem; color: var(--color-dim); }
+
+/* 日期選擇 */
+.date-cell { min-height: 66px; border: 1.5px solid var(--color-line); border-radius: 13px; background: rgb(255 255 255 / 0.03); cursor: pointer; transition: .15s; }
+.date-cell:hover { border-color: rgb(139 124 255 / 0.5); }
+.date-cell.on { background: rgb(139 124 255 / 0.18); border-color: rgb(139 124 255 / 0.7); }
+.date-cell.prefer { background: rgb(251 191 36 / 0.12); border-color: rgb(251 191 36 / 0.55); }
+.date-cell.must { background: rgb(251 113 133 / 0.14); border-color: rgb(251 113 133 / 0.6); }
+
+/* 列印：強制淺色 */
+@media print {
+  @page { size: A4 landscape; margin: 8mm; }
+  html { font-size: 12px; color-scheme: light; }
+  body { background: #fff !important; color: #111 !important; }
+  .no-print { display: none !important; }
+  body * { opacity: 1 !important; filter: none !important; transform: none !important; backdrop-filter: none !important; }
+  .print-plain { background: #fff !important; border: 0 !important; box-shadow: none !important; padding: 0 6px !important; overflow: visible !important; color: #111 !important; }
+  .print-plain * { color: #111 !important; text-shadow: none !important; }
+  .table-wrap { overflow: visible; border-color: #bbb; background: #fff; }
+  .rota { break-inside: avoid; page-break-inside: avoid; }
+  .rota table { min-width: 0; }
+  .rota th, .rota td { font-size: 8px; padding: 4px 2px; border-color: #ccc; background: #fff !important; }
+  .rota th:first-child, .rota td:first-child { width: 80px; padding-left: 4px; }
+  .rota .work { font-size: 8px; padding: 2px 3px; background: #eef !important; border: 0; }
+  .rota .work small, .rota .work em, .rota .reason { font-size: 7px; }
+  .data-table { min-width: 0; }
+  .data-table th, .data-table td { font-size: 10px; padding: 5px 8px; background: #fff !important; border-color: #ccc; }
+  .kpi-card { padding: 6px !important; border: 1px solid #bbb !important; background: #fff !important; }
+}
