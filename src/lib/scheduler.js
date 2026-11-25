@@ -269,8 +269,18 @@ export function createEngine(state) {
     const target = Math.max(red.length, must.size);
     const weeks = new Map();
     dates.forEach((d) => { const k = weekKey(d); if (!weeks.has(k)) weeks.set(k, []); weeks.get(k).push(d); });
-    // 分數越小越適合休：希望休優先，其次是其他人可上班較多的日子
-    const rank = new Map(dates.map((d) => [d, (prefer.has(d) ? -100 : 0) - (othersCount.get(d) || 0) * 6 + Math.random() * 8]));
+    // 這天少了這位正職，其他人還排得滿必要班嗎？（短班人員可負責開店，抵一個人）
+    const canSpare = (d) => {
+      const wd = parseDate(d).getDay();
+      const need = state.shifts.filter((x) => !x.optional && (x.days || []).includes(wd)).reduce((n, x) => n + Math.max(1, Number(x.headcount) || 1), 0);
+      const others = state.staff.filter((p) => p.id !== person.id && p.type !== "正職" && ptAvail.get(p.id).has(d));
+      const main = others.filter((p) => state.shifts.some((x) => !x.optional && (x.days || []).includes(wd) && canWorkShift(p, x.id))).length;
+      const opener = others.some((p) => state.shifts.some((x) => x.optional && (x.days || []).includes(wd) && canWorkShift(p, x.id)) && !state.shifts.some((x) => !x.optional && canWorkShift(p, x.id)));
+      return main >= need || (opener && main >= need - 1);
+    };
+    const spare = new Map(dates.map((d) => [d, canSpare(d)]));
+    // 分數越小越適合休：排得出人的希望休最優先；少了她會缺人的日子盡量不休
+    const rank = new Map(dates.map((d) => [d, (prefer.has(d) && spare.get(d) ? -100 : 0) + (spare.get(d) ? 0 : 200) - (othersCount.get(d) || 0) * 6 + Math.random() * 8]));
     const pick = (ds) => ds.filter((d) => !off.has(d)).sort((a, b) => rank.get(a) - rank.get(b))[0];
     const offIn = (ds) => ds.filter((d) => off.has(d)).length;
     for (const ds of weeks.values()) {
@@ -278,7 +288,7 @@ export function createEngine(state) {
       while (offIn(ds) < need) { const d = pick(ds); if (!d) break; off.add(d); }
     }
     while (off.size < target) {
-      const preferLeft = [...prefer].filter((d) => !off.has(d));
+      const preferLeft = [...prefer].filter((d) => !off.has(d) && spare.get(d)); // 希望休當天人手不足就不給休
       if (preferLeft.length) { off.add(pick(preferLeft)); continue; }
       const ws = [...weeks.values()].filter((ds) => ds.some((d) => !off.has(d))).sort((a, b) => offIn(a) / a.length - offIn(b) / b.length);
       if (!ws.length) break;
