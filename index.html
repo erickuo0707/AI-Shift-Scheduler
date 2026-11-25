@@ -238,7 +238,7 @@
           <div class="field span2"><label for="staffName">姓名或代稱</label><input id="staffName" type="text" maxlength="30" required placeholder="例如：小安"></div>
           <div class="field"><label for="employmentType">人員類型</label><select id="employmentType"><option value="PT">PT</option><option value="正職">正職</option></select></div>
           <div class="field span2"><span class="field-label" id="availabilityInputLabel">指定月份日期需求</span><span class="hint" id="availabilityMonthLabel"></span><div class="availability-calendar" id="availabilityOptions"></div><span class="hint" id="availabilityInstructions"></span></div>
-          <div class="field span2"><span class="field-label">可排班別</span><div class="shift-eligibility" id="allowedShiftOptions"></div><span class="hint">只會安排已勾選的班別；Sammy 可只勾 10:30-16，其餘人員只勾 8 小時班。</span></div>
+          <div class="field span2"><span class="field-label">可排班別</span><div class="shift-eligibility" id="allowedShiftOptions"></div><span class="hint">只會安排已勾選的班別；短班人員請只勾 10:30-16，其餘人員只勾 8 小時班。</span></div>
           <div class="field"><label for="maxHours">每週最高工時</label><input id="maxHours" type="number" min="1" max="168" required></div>
           <div class="field"><label for="preferredShift">偏好班別</label><select id="preferredShift"></select></div>
           <div class="field"><label for="avoidShift">希望避開的班別</label><select id="avoidShift"></select></div>
@@ -345,11 +345,10 @@
           const sampleIndex=Number.isFinite(idNumber)?idNumber:index;
           const migrateDemoPattern=migrateReferencePattern&&isDemoSample;
           const type=migrateDemoPattern?(demoTypes[sampleIndex]||"PT"):person.type==="正職"?"正職":person.type==="PT"?"PT":"PT";
-          const isNamedSammy=/sammy|sammie/i.test(String(person.name||""));
           const demoShortStaff=isDemo&&sampleIndex===5;
-          const allowedShiftIds=migrateReferencePattern?(isNamedSammy||demoShortStaff?["kc1116"]:["kc11","kc12"]):Array.isArray(person.allowedShiftIds)?person.allowedShiftIds.slice():null;
+          const allowedShiftIds=migrateReferencePattern?(demoShortStaff?["kc1116"]:["kc11","kc12"]):Array.isArray(person.allowedShiftIds)?person.allowedShiftIds.slice():null;
           const savedPreferred=person.preferredShiftId||"";
-          const preferredShiftId=savedPreferred&&Array.isArray(allowedShiftIds)&&!allowedShiftIds.includes(savedPreferred)?(isNamedSammy||demoShortStaff?"kc1116":""):savedPreferred;
+          const preferredShiftId=savedPreferred&&Array.isArray(allowedShiftIds)&&!allowedShiftIds.includes(savedPreferred)?(demoShortStaff?"kc1116":""):savedPreferred;
           const avoidShiftId=person.avoidShiftId&&Array.isArray(allowedShiftIds)&&!allowedShiftIds.includes(person.avoidShiftId)?"":person.avoidShiftId||"";
           if(migrateMonthDefault&&isDemo&&!Object.prototype.hasOwnProperty.call(availabilityByMonth,month)&&Array.isArray(availabilityByMonth[savedMonth])){
             const weekdays=new Set(availabilityByMonth[savedMonth].map(date=>parseDate(date).getDay()));
