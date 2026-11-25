@@ -368,7 +368,6 @@
             requestedOffByMonth,
             preferredOffByMonth,
             maxHours:person.maxHours===undefined||migrateDemoPattern?(type==="正職"?40:28):Number(person.maxHours),
-            preferredShiftId:person.preferredShiftId||"",
             allowedShiftIds,preferredShiftId,avoidShiftId
           };
         });
@@ -474,7 +473,7 @@
         const checked=!allowed||allowed.has(shift.id);
         const breakHours=shift.breakHours===undefined?defaultBreakHours(shift.start,shift.end):Number(shift.breakHours);
         const hours=Math.max(0,shiftGrossHours(shift.start,shift.end)-breakHours);
-        const hoursLabel=hours.toFixed(1).replace(/\\.0$/,"");
+        const hoursLabel=Number.isInteger(hours)?String(hours):hours.toFixed(1);
         return '<label class="shift-eligibility-option"><input type="checkbox" name="allowedShiftId" value="'+esc(shift.id)+'" '+(checked?"checked":"")+'><span>'+esc(shift.name)+'<small>'+esc(shift.start+"–"+shift.end+" · "+hoursLabel+" 小時")+'</small></span></label>';
       }).join("");
     }
