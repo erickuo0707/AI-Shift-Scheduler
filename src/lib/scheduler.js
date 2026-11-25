@@ -75,7 +75,7 @@ export function demoState() {
     const allowedShiftIds = i === 5 ? ["kc1116"] : ["kc11", "kc12"];
     return { id: "demo-" + i, name, type, availabilityByMonth, requestedOffByMonth, preferredOffByMonth, allowedShiftIds, lead: i <= 1, maxHours: type === "正職" ? 40 : 28, preferredShiftId, avoidShiftId: "" };
   });
-  return { staff, shifts, settings: { month, minRestHours: 11, maxConsecutiveDays: 5, extendToFullDay: true, holidaysByMonth: {}, monthDefaultVersion: 1, referencePatternVersion: 3, featureVersion: 4 }, result: null };
+  return { staff, shifts, settings: { month, minRestHours: 11, maxConsecutiveDays: 5, extendToFullDay: true, holidaysByMonth: {}, monthDefaultVersion: 1, referencePatternVersion: 3, featureVersion: 5 }, result: null };
 }
 
 export function loadState() {
@@ -89,7 +89,7 @@ export function loadState() {
     const migrateMonthDefault = oldSettings.monthDefaultVersion !== 1 && savedMonth === currentMonth();
     const month = migrateMonthDefault ? nextMonth() : savedMonth;
     const migrateReferencePattern = oldSettings.referencePatternVersion !== 3;
-    const migrateFeatures = oldSettings.featureVersion !== 4;
+    const migrateFeatures = (Number(oldSettings.featureVersion) || 0) < 4;
     const sourceStaff = Array.isArray(parsed.staff) ? parsed.staff : base.staff;
     const demoTypes = ["正職", "PT", "PT", "PT", "PT", "PT"];
     const demoNames = ["示範正職", "示範 PT 1", "示範 PT 2", "示範 PT 3", "示範 PT 4", "示範 PT 5（10:30短班）"];
@@ -145,6 +145,13 @@ export function loadState() {
         return { id: shift.id, name: updateShortShift ? "10:30-16" : shift.name, start: updateShortShift ? "10:30" : shift.start, end: shift.end, breakHours: shift.breakHours === undefined ? defaultBreakHours(shift.start, shift.end) : Number(shift.breakHours), headcount: shift.headcount, days: shift.days, optional: shift.optional === undefined ? (migrateFeatures && shift.id === "kc1116") : !!shift.optional };
       })
       : base.shifts;
+    // 沒有 10:30–16:00 短班時自動補上（選填班）；原本「全部班別都可排」的人先鎖定成原有班別，短班只排給勾選的人
+    if ((Number(oldSettings.featureVersion) || 0) < 5 && !shifts.some((x) => x.start === "10:30" && x.end === "16:00")) {
+      const existingIds = shifts.map((x) => x.id);
+      const id = existingIds.includes("kc1116") ? uid("shift") : "kc1116";
+      staff.forEach((p) => { if (!Array.isArray(p.allowedShiftIds)) p.allowedShiftIds = existingIds.slice(); });
+      shifts.push({ id, name: "10:30-16", start: "10:30", end: "16:00", breakHours: 0, headcount: 1, days: [1, 2, 3, 4, 5], optional: true });
+    }
     return {
       staff,
       shifts,
@@ -156,7 +163,7 @@ export function loadState() {
         holidaysByMonth: oldSettings.holidaysByMonth && typeof oldSettings.holidaysByMonth === "object" ? oldSettings.holidaysByMonth : {},
         monthDefaultVersion: 1,
         referencePatternVersion: 3,
-        featureVersion: 4,
+        featureVersion: 5,
       },
       result: null,
     };
