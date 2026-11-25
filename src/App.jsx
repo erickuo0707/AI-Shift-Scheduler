@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Background } from "./components/magic/Background";
-import { Toast } from "./components/magic/Toast";
+import { Toast } from "./components/ui/Toast";
 import { Header } from "./components/sections/Header";
 import { Hero } from "./components/sections/Hero";
 import { StaffPanel } from "./components/sections/StaffPanel";
@@ -112,17 +111,21 @@ export default function App() {
     }, 650);
   };
 
+  const monthsWithData = new Set();
+  state.staff.forEach((p) => [p.availabilityByMonth, p.requestedOffByMonth, p.preferredOffByMonth].forEach((byMonth) => {
+    Object.entries(byMonth || {}).forEach(([m, list]) => { if (Array.isArray(list) && list.length) monthsWithData.add(m); });
+  }));
+
   const editingPerson = state.staff.find((p) => p.id === dialog.personId) || null;
 
   return (
     <>
-      <Background />
-      <Header />
+      <Header month={state.settings.month} onMonth={(m) => setSetting("month", m)} monthsWithData={monthsWithData} />
       <main className="mx-auto mb-24 w-[min(1320px,calc(100%-40px))] max-sm:w-[calc(100%-22px)]">
         <Hero />
         <StaffPanel state={state} onAdd={() => setDialog({ open: true, personId: "" })} onEdit={(id) => setDialog({ open: true, personId: id })} onDelete={deletePerson} onReset={resetDemo} />
         <ShiftPanel state={state} onAdd={addShift} onEdit={editShift} onDelete={deleteShift} />
-        <SettingsPanel state={state} onSetting={setSetting} onGenerate={generate} busy={busy} />
+        <SettingsPanel state={state} onSetting={setSetting} onGenerate={generate} busy={busy} monthsWithData={monthsWithData} />
         {state.result && <ResultPanel state={state} onCsv={() => exportCsv(state)} onBackup={() => exportBackup(state)} />}
         <div className="no-print p-6 text-center text-[0.85rem] text-dim">ShiftWell · 排班建議由本機規則引擎產生，所有資料保存在目前瀏覽器。</div>
       </main>

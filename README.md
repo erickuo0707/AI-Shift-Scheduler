@@ -22,7 +22,7 @@
 
 ## 技術架構
 
-前端以 React 19 + Vite 建置，樣式使用 Tailwind CSS v4，動畫使用 Motion。介面效果參考 Magic UI、React Bits、SmoothUI 與 AIMRAN Library（流光邊框、Shimmer 按鈕、數字滾動、聚光燈卡片、3D 傾斜卡片、粒子與極光背景），皆在 `src/components/magic/` 內自行實作。排班引擎位於 `src/lib/scheduler.js`。
+前端以 React 19 + Vite 建置，樣式使用 Tailwind CSS v4，對話框與提示使用 Motion 做簡單淡入。排班引擎位於 `src/lib/scheduler.js`，畫面元件在 `src/components/`。
 
 ## 開啟與部署
 

@@ -1,5 +1,4 @@
 import { Panel } from "../Panel";
-import { NumberTicker } from "../magic/NumberTicker";
 import { IconCheck, IconDownload, IconPrinter, IconSave } from "../Icons";
 import { addDays, coveredSlotIds, formatDateLabel, isoDate, monthDates, parseDate, personAvailabilityDates, personMustOffDates, personPreferredOffDates, weekKey } from "../../lib/scheduler";
 
@@ -57,7 +56,6 @@ export function ResultPanel({ state, onCsv, onBackup }) {
   return (
     <Panel
       id="resultSection"
-      beam
       icon={<IconCheck />}
       title="排班建議"
       sub={formatDateLabel(dates[0]) + " 至 " + formatDateLabel(dates[dates.length - 1]) + " · 必要班位 " + required.length + " 個" + (optional.length ? "，選填 " + optional.length + " 個（已排 " + optional.filter((s) => covered.has(s.id)).length + "）" : "")}
@@ -75,11 +73,10 @@ export function ResultPanel({ state, onCsv, onBackup }) {
 
       <div className="my-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         {kpis.map(([label, value, unit, good]) => (
-          <div key={label} className="kpi-card relative overflow-hidden rounded-[22px] border border-white/[0.08] bg-gradient-to-br from-white/[0.06] to-white/[0.01] px-6 py-5">
-            <div aria-hidden className={"no-print absolute -right-8 -bottom-8 size-28 rounded-full blur-2xl " + (good ? "bg-violet-500/30" : "bg-amber-500/30")} />
-            <span className="relative block text-[0.9rem] font-bold text-dim">{label}</span>
-            <strong className={"relative mt-1 block text-[2.4rem] font-black leading-tight tracking-tight " + (good ? "bg-gradient-to-r from-violet-300 to-cyan-300 bg-clip-text text-transparent" : "text-amber-300")}>
-              <NumberTicker value={value} />{unit}
+          <div key={label} className="kpi-card rounded-xl border border-white/[0.08] bg-white/[0.03] px-6 py-5">
+            <span className="block text-[0.9rem] font-bold text-dim">{label}</span>
+            <strong className={"mt-1 block text-[2.3rem] font-black leading-tight tracking-tight " + (good ? "text-white" : "text-amber-300")}>
+              {value}{unit}
             </strong>
           </div>
         ))}
@@ -88,7 +85,7 @@ export function ResultPanel({ state, onCsv, onBackup }) {
       <p className="mb-3.5 text-[0.88rem] text-dim">紅色日期為紅字（週末／國定假日）。PT 的 X 代表未勾選可上班；正職休假標「例假日／休息日」，X 是自己畫的必休、△ 是希望休。<span className="text-sky-300">藍色</span>是缺人時延長的全天班。</p>
 
       <div className="grid gap-5">
-        <div className="rounded-2xl bg-gradient-to-r from-indigo-950 via-violet-900/80 to-indigo-950 p-4 text-center text-[1.4rem] font-black tracking-wide text-white ring-1 ring-violet-400/30">
+        <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4 text-center text-[1.4rem] font-black tracking-wide text-white">
           {y} 年 {m} 月排班表
         </div>
         {weeks.map((weekDates) => (
@@ -188,7 +185,7 @@ export function ResultPanel({ state, onCsv, onBackup }) {
                       <div className="flex items-center gap-3">
                         <span className="w-24 whitespace-nowrap">{hours.toFixed(1)} 小時</span>
                         <div className="no-print h-2 w-32 overflow-hidden rounded-full bg-white/10" title="單週最高工時／上限">
-                          <div className="h-full rounded-full bg-gradient-to-r from-violet-400 to-cyan-300" style={{ width: pct + "%" }} />
+                          <div className="h-full rounded-full bg-violet-400" style={{ width: pct + "%" }} />
                         </div>
                       </div>
                     </td>

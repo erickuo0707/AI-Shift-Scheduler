@@ -15,7 +15,7 @@ export function ShiftPanel({ state, onAdd, onEdit, onDelete }) {
       <div className="grid gap-4">
         {!state.shifts.length && <div className="p-9 text-center text-dim">尚未設定班別。請新增至少一個班別。</div>}
         {state.shifts.map((s) => (
-          <article key={s.id} className="grid grid-cols-2 items-end gap-4 rounded-[22px] border border-white/[0.08] bg-gradient-to-b from-white/[0.045] to-white/[0.015] p-5 transition hover:border-violet-400/40 hover:shadow-[0_0_40px_-16px_rgba(139,124,255,0.7)] sm:p-6 lg:grid-cols-[1.1fr_.9fr_.9fr_.8fr_.8fr_auto]">
+          <article key={s.id} className="grid grid-cols-2 items-end gap-4 rounded-xl border border-white/[0.08] bg-white/[0.025] p-5 sm:p-6 lg:grid-cols-[1.1fr_.9fr_.9fr_.8fr_.8fr_auto]">
             <label className="flex min-w-0 flex-col gap-2 max-lg:col-span-2">
               <span className="label">班別名稱</span>
               <CommitInput type="text" maxLength={20} value={s.name} onCommit={(v) => onEdit(s.id, "name", v)} />
@@ -44,7 +44,7 @@ export function ShiftPanel({ state, onAdd, onEdit, onDelete }) {
               <div className="grid grid-cols-2 gap-1 rounded-2xl border border-white/10 bg-white/[0.04] p-1">
                 {[[false, "必要班"], [true, "選填班"]].map(([v, t]) => (
                   <button key={t} type="button" aria-pressed={!!s.optional === v} onClick={() => onEdit(s.id, "optional", v)}
-                    className={"rounded-xl px-4 py-1.5 text-[0.92rem] font-extrabold transition " + (!!s.optional === v ? "bg-gradient-to-r from-violet-500 to-cyan-500 text-white" : "text-dim hover:text-white")}>{t}</button>
+                    className={"rounded-xl px-4 py-1.5 text-[0.92rem] font-extrabold transition " + (!!s.optional === v ? "bg-violet-500 text-white" : "text-dim hover:text-white")}>{t}</button>
                 ))}
               </div>
               <span className="text-[0.82rem] text-dim">{s.optional ? "有人能排才排，沒排到不算缺額（例如短班）" : "每天一定要有人；缺人時可延長同天的人為全天班"}</span>
@@ -56,7 +56,7 @@ export function ShiftPanel({ state, onAdd, onEdit, onDelete }) {
                   const on = (s.days || []).includes(i);
                   return (
                     <button key={d} type="button" aria-pressed={on} onClick={() => onEdit(s.id, "days", { day: i, checked: !on })}
-                      className={"min-w-[3.1rem] rounded-xl border-[1.5px] px-3.5 py-2 text-[1rem] font-extrabold transition " + (on ? "border-violet-400/60 bg-violet-500/20 text-violet-100 shadow-[0_0_18px_-6px_rgba(139,124,255,0.9)]" : "border-white/10 bg-white/[0.03] text-dim hover:text-white")}>
+                      className={"min-w-[3.1rem] rounded-xl border-[1.5px] px-3.5 py-2 text-[1rem] font-extrabold transition " + (on ? "border-violet-400/60 bg-violet-500/20 text-violet-100" : "border-white/10 bg-white/[0.03] text-dim hover:text-white")}>
                       {d}
                     </button>
                   );

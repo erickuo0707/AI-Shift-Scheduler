@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Dialog } from "../magic/Dialog";
+import { Dialog } from "../ui/Dialog";
 import { IconX } from "../Icons";
 import { DAY_NAMES, defaultBreakHours, monthDates, redDates, shiftGrossHours, offRequestLimit, parseDate, personAvailabilityDates, personMustOffDates, personPreferredOffDates } from "../../lib/scheduler";
 
@@ -101,7 +101,7 @@ export function StaffDialog({ open, person, state, onClose, onSave, toast }) {
             <div className="grid grid-cols-2 gap-1 rounded-2xl border border-white/10 bg-white/[0.04] p-1">
               {["PT", "正職"].map((t) => (
                 <button key={t} type="button" onClick={() => changeType(t)}
-                  className={"rounded-xl py-2 text-[1rem] font-extrabold transition " + (form.type === t ? "bg-gradient-to-r from-violet-500 to-cyan-500 text-white shadow-[0_6px_20px_-6px_rgba(139,124,255,0.8)]" : "text-dim hover:text-white")}>
+                  className={"rounded-xl py-2 text-[1rem] font-extrabold transition " + (form.type === t ? "bg-violet-500 text-white" : "text-dim hover:text-white")}>
                   {t}
                 </button>
               ))}
@@ -154,7 +154,7 @@ export function StaffDialog({ open, person, state, onClose, onSave, toast }) {
                 return (
                   <button key={shift.id} type="button" aria-pressed={on}
                     onClick={() => { const a = new Set(form.allowed); if (a.has(shift.id)) a.delete(shift.id); else a.add(shift.id); set({ allowed: a }); }}
-                    className={"flex items-center gap-3 rounded-2xl border-[1.5px] px-4 py-2.5 text-left transition " + (on ? "border-violet-400/60 bg-violet-500/15 shadow-[0_0_20px_-8px_rgba(139,124,255,0.9)]" : "border-white/10 bg-white/[0.03] opacity-70 hover:opacity-100")}>
+                    className={"flex items-center gap-3 rounded-xl border-[1.5px] px-4 py-2.5 text-left transition " + (on ? "border-violet-400/60 bg-violet-500/15" : "border-white/10 bg-white/[0.03] opacity-70 hover:opacity-100")}>
                     <span className={"grid size-5 place-items-center rounded-md border text-[0.75rem] " + (on ? "border-violet-300 bg-violet-500 text-white" : "border-white/25")}>{on ? "✓" : ""}</span>
                     <span className="flex flex-col leading-tight">
                       <strong className="text-[1rem] text-white">{shift.name}</strong>
@@ -164,7 +164,7 @@ export function StaffDialog({ open, person, state, onClose, onSave, toast }) {
                 );
               })}
             </div>
-            <span className="text-[0.85rem] text-dim">只會安排已勾選的班別；短班人員請只勾 10:30-16，其餘人員只勾 8 小時班。</span>
+            <span className="text-[0.85rem] text-dim">只會安排已勾選的班別。只上短班的人（例如 Sammy）請只勾短班；班別清單沒有短班時，先到「班別與每日人力需求」按「新增班別」。</span>
           </div>
           <label className="flex flex-col gap-2">
             <span className="label">每週最高工時</span>

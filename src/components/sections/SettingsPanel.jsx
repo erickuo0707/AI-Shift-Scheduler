@@ -1,14 +1,13 @@
 import { Panel } from "../Panel";
+import { MonthPicker } from "../MonthPicker";
 import { CommitInput } from "../CommitInput";
-import { ShimmerButton } from "../magic/ShimmerButton";
-import { OrbitLoader } from "../magic/OrbitLoader";
 import { IconCalendar, IconSparkles } from "../Icons";
 import { DAY_NAMES, defaultHolidays, isWeekend, monthDates, monthHolidays, parseDate } from "../../lib/scheduler";
 
 function Toggle({ on, onChange, label }) {
   return (
     <button type="button" aria-pressed={on} onClick={() => onChange(!on)} className="flex items-center gap-3 text-left">
-      <span className={"relative h-6 w-11 shrink-0 rounded-full transition " + (on ? "bg-gradient-to-r from-violet-500 to-cyan-400" : "bg-white/15")}>
+      <span className={"relative h-6 w-11 shrink-0 rounded-full transition " + (on ? "bg-violet-500" : "bg-white/15")}>
         <span className={"absolute top-0.5 size-5 rounded-full bg-white shadow transition-all " + (on ? "left-[22px]" : "left-0.5")} />
       </span>
       <span className="text-[0.92rem] font-bold text-[#d8dcf6]">{label}</span>
@@ -16,7 +15,7 @@ function Toggle({ on, onChange, label }) {
   );
 }
 
-export function SettingsPanel({ state, onSetting, onGenerate, busy }) {
+export function SettingsPanel({ state, onSetting, onGenerate, busy, monthsWithData }) {
   const st = state.settings;
   const dates = monthDates(st.month);
   const holidays = new Set(monthHolidays(st, st.month));
@@ -37,10 +36,10 @@ export function SettingsPanel({ state, onSetting, onGenerate, busy }) {
       sub="硬性規則不會被偏好分數覆蓋；條件不足時會保留缺額並說明原因。"
     >
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
-        <label className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2">
           <span className="label">排班月份</span>
-          <input className="input" type="month" value={st.month} onChange={(e) => e.target.value && onSetting("month", e.target.value)} />
-        </label>
+          <MonthPicker value={st.month} onChange={(m) => onSetting("month", m)} monthsWithData={monthsWithData} />
+        </div>
         <label className="flex flex-col gap-2">
           <span className="label">兩班最少休息（小時）</span>
           <CommitInput type="number" min={0} max={24} step={0.5} value={st.minRestHours} onCommit={(v) => onSetting("minRestHours", v)} />
@@ -52,7 +51,7 @@ export function SettingsPanel({ state, onSetting, onGenerate, busy }) {
       </div>
 
       <div className="mt-7 grid gap-6 lg:grid-cols-[1.2fr_1fr]">
-        <div className="rounded-[22px] border border-white/[0.08] bg-white/[0.025] p-5">
+        <div className="rounded-xl border border-white/[0.08] bg-white/[0.025] p-5">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <span className="label">本月紅字（國定假日）</span>
             {isCustom && <button className="btn btn-sm" onClick={() => onSetting("holidays", null)}>還原預設</button>}
@@ -77,7 +76,7 @@ export function SettingsPanel({ state, onSetting, onGenerate, busy }) {
             {!isCustom && defaultHolidays(st.month).length === 0 && " 本月沒有內建國定假日，可直接點日期加上。"}
           </p>
         </div>
-        <div className="flex flex-col gap-4 rounded-[22px] border border-white/[0.08] bg-white/[0.025] p-5">
+        <div className="flex flex-col gap-4 rounded-xl border border-white/[0.08] bg-white/[0.025] p-5">
           <span className="label">排班規則</span>
           <Toggle on={st.extendToFullDay !== false} onChange={(v) => onSetting("extendToFullDay", v)} label="缺人時延長為全天班" />
           <p className="m-0 text-[0.85rem] leading-relaxed text-dim">某個必要班沒人能上時，把當天已排班的人延長成涵蓋兩班的全天班（例如 11:00–21:00，扣休息 1 小時算 9 小時），可超過每週上限。</p>
@@ -89,9 +88,9 @@ export function SettingsPanel({ state, onSetting, onGenerate, busy }) {
         <p className="m-0 max-w-[680px] text-[0.88rem] leading-relaxed text-dim">
           排班會先排滿正職，再依帶班、班別偏好與工時平衡安排 PT；必要班優先，選填班有人才排。
         </p>
-        <ShimmerButton onClick={onGenerate} disabled={busy} className="text-[1.2rem] max-sm:w-full">
-          {busy ? <><OrbitLoader /> 排班運算中…</> : <><IconSparkles /> 生成建議班表</>}
-        </ShimmerButton>
+        <button onClick={onGenerate} disabled={busy} className="btn btn-primary justify-center px-8 py-3.5 text-[1.15rem] disabled:cursor-wait disabled:opacity-70 max-sm:w-full">
+          {busy ? <><span className="inline-block size-5 animate-spin rounded-full border-[3px] border-white/30 border-t-white" /> 排班運算中…</> : <><IconSparkles /> 生成建議班表</>}
+        </button>
       </div>
     </Panel>
   );
