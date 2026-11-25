@@ -15,6 +15,7 @@ export function ResultPanel({ state, onCsv, onBackup }) {
   const coveredReq = required.filter((s) => covered.has(s.id)).length;
   const coverage = required.length ? Math.round((coveredReq / required.length) * 100) : 0;
   const extendedCount = result.assignments.filter((a) => a.slot.extended).length;
+  const implicitDays = [...new Set((result.implicitCovered || []).map((id) => Number(id.slice(8, 10))))];
   const redSet = new Set(result.redDates || []);
   const offLabels = result.offLabels || {};
   const avoidCount = result.assignments.filter((a) => {
@@ -69,6 +70,7 @@ export function ResultPanel({ state, onCsv, onBackup }) {
         {unfilled
           ? `必要班位排出 ${coveredReq} / ${required.length} 個，還有 ${unfilled} 個缺額。請查看原因，調整人員可上班日期、班別需求或休息條件後重新生成。`
           : `所有必要班位都已安排${extendedCount ? `（其中 ${extendedCount} 天因缺人延長為全天班）` : ""}。系統遵守可上班日期、正職月休與一例一休、休息間隔與連續工作日上限。`}
+        {implicitDays.length > 0 && <div className="mt-1.5 text-[0.9rem] font-normal opacity-90">{implicitDays.join("、")} 日由短班負責開店，另一人上 12 點的班即可，不另排早班。</div>}
       </div>
 
       <div className="my-6 grid grid-cols-2 gap-4 lg:grid-cols-4">

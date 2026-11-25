@@ -244,7 +244,7 @@ function respectsRest(slot, otherSlots, minRestHours) {
 
 // 某班位是否已被排到（全天班延長會同時涵蓋兩個班位）
 export function coveredSlotIds(result) {
-  const set = new Set();
+  const set = new Set(result.implicitCovered || []);
   result.assignments.forEach((a) => (a.slot.covers || [a.slot.id]).forEach((id) => set.add(id)));
   return set;
 }
@@ -338,38 +338,69 @@ export function createEngine(state) {
     return score + Math.random() * 1.5;
   }
 
-  // 缺人時，把當天已排班的人延長成涵蓋兩個班的全天班（可超過每週上限）
-  function extendForCoverage(slots, assignments) {
-    if (!state.settings.extendToFullDay) return;
+  // 當天已排的班加起來是否能蓋住某個時段（例如短班 10:30-16 + 晚班 12-21 蓋住早班 11-20）
+  function timeCovered(date, startAt, endAt, list) {
+    const ranges = list.filter((a) => a.slot.date === date).map((a) => [a.slot.startAt, a.slot.endAt]).sort((x, y) => x[0] - y[0]);
+    let reach = startAt;
+    for (const [s, e] of ranges) { if (s > reach) break; reach = Math.max(reach, e); if (reach >= endAt) return true; }
+    return reach >= endAt;
+  }
+
+  // 補缺：1) 當天其他班已蓋住就不算缺；2) 把同天的人換到缺的班，讓其他班蓋住原本的班；3) 都不行才延長成全天班（可超過每週上限）
+  function resolveCoverage(slots, assignments) {
+    const implicitCovered = [];
     const covered = coveredSlotIds({ assignments });
     const missing = slots.filter((s) => !s.optional && !covered.has(s.id));
     for (const slot of missing) {
-      const candidates = assignments.filter((a) => a.slot.date === slot.date && !a.slot.optional && !a.slot.extended);
-      for (const a of candidates) {
+      if (timeCovered(slot.date, slot.startAt, slot.endAt, assignments)) { implicitCovered.push(slot.id); continue; }
+      let swapped = false;
+      for (const a of assignments.filter((x) => x.slot.date === slot.date && !x.slot.optional && !x.slot.extended)) {
         const person = state.staff.find((p) => p.id === a.employeeId);
         if (!person || !canWorkShift(person, slot.shiftId)) continue;
         if (assignments.some((x) => x !== a && x.employeeId === a.employeeId && x.slot.date === slot.date)) continue;
-        if (!(a.slot.startAt <= slot.endAt && slot.startAt <= a.slot.endAt)) continue;
-        const startAt = Math.min(a.slot.startAt, slot.startAt);
-        const endAt = Math.max(a.slot.endAt, slot.endAt);
         const others = assignments.filter((x) => x !== a && x.employeeId === a.employeeId).map((x) => x.slot);
-        if (!respectsRest({ startAt, endAt }, others, state.settings.minRestHours)) continue;
-        const breakHours = Math.max(a.slot.breakHours || 0, slot.breakHours || 0);
-        const grossHours = (endAt - startAt) / 3600000;
-        a.slot = {
-          ...a.slot,
-          start: a.slot.startAt <= slot.startAt ? a.slot.start : slot.start,
-          end: a.slot.endAt >= slot.endAt ? a.slot.end : slot.end,
-          startAt, endAt, grossHours, breakHours, hours: Math.max(0, grossHours - breakHours),
-          shiftName: "全天班", extended: true, covers: [a.slot.id, slot.id],
-        };
+        if (!respectsRest(slot, others, state.settings.minRestHours)) continue;
+        const vacated = a.slot;
+        const trial = assignments.map((x) => (x === a ? { ...x, slot } : x));
+        if (!timeCovered(vacated.date, vacated.startAt, vacated.endAt, trial)) continue;
+        a.slot = slot;
+        implicitCovered.push(vacated.id);
+        swapped = true;
         break;
       }
+      if (swapped) continue;
+      if (state.settings.extendToFullDay) extendOne(slot, assignments);
+    }
+    return implicitCovered;
+  }
+
+  // 把當天已排班的人延長成涵蓋兩個班的全天班
+  function extendOne(slot, assignments) {
+    const candidates = assignments.filter((a) => a.slot.date === slot.date && !a.slot.optional && !a.slot.extended);
+    for (const a of candidates) {
+      const person = state.staff.find((p) => p.id === a.employeeId);
+      if (!person || !canWorkShift(person, slot.shiftId)) continue;
+      if (assignments.some((x) => x !== a && x.employeeId === a.employeeId && x.slot.date === slot.date)) continue;
+      if (!(a.slot.startAt <= slot.endAt && slot.startAt <= a.slot.endAt)) continue;
+      const startAt = Math.min(a.slot.startAt, slot.startAt);
+      const endAt = Math.max(a.slot.endAt, slot.endAt);
+      const others = assignments.filter((x) => x !== a && x.employeeId === a.employeeId).map((x) => x.slot);
+      if (!respectsRest({ startAt, endAt }, others, state.settings.minRestHours)) continue;
+      const breakHours = Math.max(a.slot.breakHours || 0, slot.breakHours || 0);
+      const grossHours = (endAt - startAt) / 3600000;
+      a.slot = {
+        ...a.slot,
+        start: a.slot.startAt <= slot.startAt ? a.slot.start : slot.start,
+        end: a.slot.endAt >= slot.endAt ? a.slot.end : slot.end,
+        startAt, endAt, grossHours, breakHours, hours: Math.max(0, grossHours - breakHours),
+        shiftName: "全天班", extended: true, covers: [a.slot.id, slot.id],
+      };
+      break;
     }
   }
 
-  function scheduleGrade(slots, assignments) {
-    const covered = coveredSlotIds({ assignments });
+  function scheduleGrade(slots, assignments, implicitCovered = []) {
+    const covered = coveredSlotIds({ assignments, implicitCovered });
     const missingReq = slots.filter((s) => !s.optional && !covered.has(s.id)).length;
     const missingOpt = slots.filter((s) => s.optional && !covered.has(s.id)).length;
     const extended = assignments.filter((a) => a.slot.extended).length;
@@ -414,8 +445,8 @@ export function createEngine(state) {
       if (choices[1] && choices[1].score < choices[0].score + 7 && Math.random() < 0.18) chosen = choices[1];
       assignments.push({ slot, employeeId: chosen.person.id });
     }
-    extendForCoverage(slots, assignments);
-    return { slots, assignments, offPlan, grade: scheduleGrade(slots, assignments) };
+    const implicitCovered = resolveCoverage(slots, assignments);
+    return { slots, assignments, implicitCovered, offPlan, grade: scheduleGrade(slots, assignments, implicitCovered) };
   }
 
   function shortageReason(slot, assignments) {
@@ -457,7 +488,7 @@ export function createEngine(state) {
       const worked = workedDays(id);
       offLabels[id] = labelOff(new Set([...dates].filter((d) => off.has(d) || !worked.has(d))));
     });
-    return { result: { slots: best.slots, assignments: best.assignments, shortages, offLabels, redDates: red, createdAt: new Date().toISOString() } };
+    return { result: { slots: best.slots, assignments: best.assignments, implicitCovered: best.implicitCovered, shortages, offLabels, redDates: red, createdAt: new Date().toISOString() } };
   }
   return { createSchedule, shortageReason };
 }
@@ -474,7 +505,8 @@ export function exportCsv(state) {
     const person = assigned && state.staff.find((p) => p.id === assigned.employeeId);
     if (assigned && assigned.slot.extended && assigned.slot.id !== slot.id) return; // 全天班只列一次
     const s = assigned ? assigned.slot : slot;
-    const status = person ? (s.extended ? "已安排（缺人延長為全天班）" : "已安排") : slot.optional ? "選填班未排" : (state.result.shortages.find((x) => x.slotId === slot.id) || {}).reason || "缺額";
+    const implicit = (state.result.implicitCovered || []).includes(slot.id);
+    const status = person ? (s.extended ? "已安排（缺人延長為全天班）" : "已安排") : implicit ? "由當天其他班別涵蓋（如短班開店）" : slot.optional ? "選填班未排" : (state.result.shortages.find((x) => x.slotId === slot.id) || {}).reason || "缺額";
     lines.push([slot.date, dayLabel(slot.weekday), s.shiftName, s.start, s.end, s.hours, person ? person.name : "", status]);
   });
   const csv = "﻿" + lines.map((row) => row.map((value) => '"' + String(value).replace(/"/g, '""') + '"').join(",")).join("\r\n");
