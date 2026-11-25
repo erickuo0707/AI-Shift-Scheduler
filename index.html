@@ -290,7 +290,7 @@
       const shifts=[
         {id:"kc11",name:"KC-11",start:"11:00",end:"20:00",breakHours:1,headcount:1,days:[0,1,2,3,4,5,6]},
         {id:"kc12",name:"KC-12",start:"12:00",end:"21:00",breakHours:1,headcount:1,days:[0,1,2,3,4,5,6]},
-        {id:"kc1116",name:"KC-11-16",start:"11:00",end:"16:00",breakHours:0,headcount:1,days:[1,2,3,4,5]}
+        {id:"kc1116",name:"10:30-16",start:"10:30",end:"16:00",breakHours:0,headcount:1,days:[1,2,3,4,5]}
       ];
       const staff=people.map((name,i)=>{
         const type=types[i];
@@ -307,7 +307,7 @@
         const preferredShiftId=i===0?"kc11":i>=4?"kc1116":i%2?"kc11":"kc12";
         return {id:"demo-"+i,name,type,availabilityByMonth,requestedOffByMonth,preferredOffByMonth,maxHours:type==="正職"?40:28,preferredShiftId,avoidShiftId:""};
       });
-      return {staff,shifts,settings:{month,minRestHours:11,maxConsecutiveDays:5,monthDefaultVersion:1,referencePatternVersion:1},result:null};
+      return {staff,shifts,settings:{month,minRestHours:11,maxConsecutiveDays:5,monthDefaultVersion:1,referencePatternVersion:2},result:null};
     }
 
     function loadState(){
@@ -320,7 +320,7 @@
         const savedMonth=oldSettings.month||(oldSettings.startDate?oldSettings.startDate.slice(0,7):base.settings.month);
         const migrateMonthDefault=oldSettings.monthDefaultVersion!==1&&savedMonth===currentMonth();
         const month=migrateMonthDefault?nextMonth():savedMonth;
-        const migrateReferencePattern=oldSettings.referencePatternVersion!==1;
+        const migrateReferencePattern=oldSettings.referencePatternVersion!==2;
         const sourceStaff=Array.isArray(parsed.staff)?parsed.staff:base.staff;
         const demoTypes=["正職","PT","PT","PT","PT","PT"];
         const demoNames=["示範正職","示範 PT 1","示範 PT 2","示範 PT 3","示範 PT 4","示範 PT 5"];
@@ -360,7 +360,11 @@
         });
         const oldDefaultShifts=Array.isArray(parsed.shifts)&&parsed.shifts.length===2&&parsed.shifts[0].id==="early"&&parsed.shifts[0].name==="早班"&&parsed.shifts[0].start==="09:00"&&parsed.shifts[0].end==="15:00"&&parsed.shifts[1].id==="late"&&parsed.shifts[1].name==="晚班"&&parsed.shifts[1].start==="16:00"&&parsed.shifts[1].end==="22:00";
         const migrateDemoShifts=migrateReferencePattern&&oldDefaultShifts;
-        const shifts=Array.isArray(parsed.shifts)&&!migrateDemoShifts?parsed.shifts.map(shift=>({id:shift.id,name:shift.name,start:shift.start,end:shift.end,breakHours:shift.breakHours===undefined?defaultBreakHours(shift.start,shift.end):Number(shift.breakHours),headcount:shift.headcount,days:shift.days})):base.shifts;
+        const migrateDemoShortShift=migrateReferencePattern&&Array.isArray(parsed.shifts)&&parsed.shifts.some(shift=>shift.id==="kc1116"&&shift.name==="KC-11-16"&&shift.start==="11:00"&&shift.end==="16:00"&&(shift.breakHours===undefined||Number(shift.breakHours)===0));
+        const shifts=Array.isArray(parsed.shifts)&&!migrateDemoShifts?parsed.shifts.map(shift=>{
+          const updateShortShift=migrateDemoShortShift&&shift.id==="kc1116";
+          return {id:shift.id,name:updateShortShift?"10:30-16":shift.name,start:updateShortShift?"10:30":shift.start,end:shift.end,breakHours:shift.breakHours===undefined?defaultBreakHours(shift.start,shift.end):Number(shift.breakHours),headcount:shift.headcount,days:shift.days};
+        }):base.shifts;
         return {
           staff,
           shifts,
@@ -532,7 +536,7 @@
     }
 
     function addShift(){
-      state.shifts.push({id:uid("shift"),name:"KC-11-16",start:"11:00",end:"16:00",breakHours:0,headcount:1,days:[0,1,2,3,4,5,6]});
+      state.shifts.push({id:uid("shift"),name:"10:30-16",start:"10:30",end:"16:00",breakHours:0,headcount:1,days:[0,1,2,3,4,5,6]});
       invalidateResult();persist();renderAll();showToast("已新增班別，請設定時段與人數。");
     }
 
