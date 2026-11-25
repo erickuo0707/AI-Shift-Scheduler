@@ -49,11 +49,11 @@ export function redDates(settings, month) {
   return monthDates(month).filter((d) => isWeekend(d) || hol.has(d));
 }
 
-// 門市固定班別：早班、晚班每天都要有人；短班有人能上才排（週一到週五）
+// 門市固定班別：早班、晚班每天都要有人；短班有人能上才排（每天皆可，依短班人員可上班日）
 export const FIXED_SHIFTS = [
   { id: "kc11", name: "早班", start: "11:00", end: "20:00", breakHours: 1, headcount: 1, days: [0, 1, 2, 3, 4, 5, 6], optional: false },
   { id: "kc12", name: "晚班", start: "12:00", end: "21:00", breakHours: 1, headcount: 1, days: [0, 1, 2, 3, 4, 5, 6], optional: false },
-  { id: "kc1116", name: "短班", start: "10:30", end: "16:00", breakHours: 0, headcount: 1, days: [1, 2, 3, 4, 5], optional: true },
+  { id: "kc1116", name: "短班", start: "10:30", end: "16:00", breakHours: 0, headcount: 1, days: [0, 1, 2, 3, 4, 5, 6], optional: true },
 ];
 const fixedShifts = () => FIXED_SHIFTS.map((x) => ({ ...x, days: x.days.slice() }));
 

@@ -163,7 +163,7 @@ export function StaffDialog({ open, person, state, onClose, onSave, toast }) {
                 );
               })}
             </div>
-            <span className="text-[0.85rem] text-dim">只會安排已勾選的班別。只上短班的人（例如 Sammy）請只勾短班；早班、晚班每天都要有人，短班有人能上才排（週一到週五）。</span>
+            <span className="text-[0.85rem] text-dim">只會安排已勾選的班別。只上短班的人（例如 Sammy）請只勾短班；早班、晚班每天都要有人；短班有人能上才排，可負責開店。</span>
           </div>
           <label className="flex flex-col gap-2">
             <span className="label">每週最高工時</span>
