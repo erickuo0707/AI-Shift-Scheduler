@@ -32,12 +32,12 @@ export function dayLabel(day) { return "週" + DAY_NAMES[day]; }
 export function demoState() {
   const month = nextMonth();
   const daySets = [[1, 2, 4, 5, 6], [2, 3, 4, 5, 0], [1, 3, 4, 6, 0], [1, 2, 5, 6, 0], [2, 3, 5, 6, 0], [1, 3, 4, 5, 0]];
-  const people = ["示範正職", "示範 PT 1", "示範 PT 2", "示範 PT 3", "示範 PT 4", "示範 PT 5"];
+  const people = ["示範正職", "示範 PT 1", "示範 PT 2", "示範 PT 3", "示範 PT 4", "示範 PT 5（10:30短班）"];
   const types = ["正職", "PT", "PT", "PT", "PT", "PT"];
   const shifts = [
     { id: "kc11", name: "KC-11", start: "11:00", end: "20:00", breakHours: 1, headcount: 1, days: [0, 1, 2, 3, 4, 5, 6] },
     { id: "kc12", name: "KC-12", start: "12:00", end: "21:00", breakHours: 1, headcount: 1, days: [0, 1, 2, 3, 4, 5, 6] },
-    { id: "kc1116", name: "KC-11-16", start: "11:00", end: "16:00", breakHours: 0, headcount: 1, days: [1, 2, 3, 4, 5] },
+    { id: "kc1116", name: "10:30-16", start: "10:30", end: "16:00", breakHours: 0, headcount: 1, days: [1, 2, 3, 4, 5] },
   ];
   const staff = people.map((name, i) => {
     const type = types[i];
@@ -51,10 +51,11 @@ export function demoState() {
     } else {
       availabilityByMonth[month] = monthDates(month).filter((date) => daySets[i].includes(parseDate(date).getDay()));
     }
-    const preferredShiftId = i === 0 ? "kc11" : i >= 4 ? "kc1116" : i % 2 ? "kc11" : "kc12";
-    return { id: "demo-" + i, name, type, availabilityByMonth, requestedOffByMonth, preferredOffByMonth, maxHours: type === "正職" ? 40 : 28, preferredShiftId, avoidShiftId: "" };
+    const preferredShiftId = i === 0 ? "kc11" : i === 5 ? "kc1116" : i % 2 ? "kc11" : "kc12";
+    const allowedShiftIds = i === 5 ? ["kc1116"] : ["kc11", "kc12"];
+    return { id: "demo-" + i, name, type, availabilityByMonth, requestedOffByMonth, preferredOffByMonth, allowedShiftIds, maxHours: type === "正職" ? 40 : 28, preferredShiftId, avoidShiftId: "" };
   });
-  return { staff, shifts, settings: { month, minRestHours: 11, maxConsecutiveDays: 5, monthDefaultVersion: 1, referencePatternVersion: 1 }, result: null };
+  return { staff, shifts, settings: { month, minRestHours: 11, maxConsecutiveDays: 5, monthDefaultVersion: 1, referencePatternVersion: 3 }, result: null };
 }
 
 export function loadState() {
@@ -67,10 +68,10 @@ export function loadState() {
     const savedMonth = oldSettings.month || (oldSettings.startDate ? oldSettings.startDate.slice(0, 7) : base.settings.month);
     const migrateMonthDefault = oldSettings.monthDefaultVersion !== 1 && savedMonth === currentMonth();
     const month = migrateMonthDefault ? nextMonth() : savedMonth;
-    const migrateReferencePattern = oldSettings.referencePatternVersion !== 1;
+    const migrateReferencePattern = oldSettings.referencePatternVersion !== 3;
     const sourceStaff = Array.isArray(parsed.staff) ? parsed.staff : base.staff;
     const demoTypes = ["正職", "PT", "PT", "PT", "PT", "PT"];
-    const demoNames = ["示範正職", "示範 PT 1", "示範 PT 2", "示範 PT 3", "示範 PT 4", "示範 PT 5"];
+    const demoNames = ["示範正職", "示範 PT 1", "示範 PT 2", "示範 PT 3", "示範 PT 4", "示範 PT 5（10:30短班）"];
     const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
     const staff = sourceStaff.map((person, index) => {
       const availabilityByMonth = Object.assign({}, person.availabilityByMonth || {});
@@ -85,6 +86,12 @@ export function loadState() {
       const sampleIndex = Number.isFinite(idNumber) ? idNumber : index;
       const migrateDemoPattern = migrateReferencePattern && isDemoSample;
       const type = migrateDemoPattern ? (demoTypes[sampleIndex] || "PT") : person.type === "正職" ? "正職" : "PT";
+      const isNamedSammy = /sammy|sammie/i.test(String(person.name || ""));
+      const demoShortStaff = isDemo && sampleIndex === 5;
+      const allowedShiftIds = migrateReferencePattern ? (isNamedSammy || demoShortStaff ? ["kc1116"] : ["kc11", "kc12"]) : Array.isArray(person.allowedShiftIds) ? person.allowedShiftIds.slice() : null;
+      const savedPreferred = person.preferredShiftId || "";
+      const preferredShiftId = savedPreferred && Array.isArray(allowedShiftIds) && !allowedShiftIds.includes(savedPreferred) ? (isNamedSammy || demoShortStaff ? "kc1116" : "") : savedPreferred;
+      const avoidShiftId = person.avoidShiftId && Array.isArray(allowedShiftIds) && !allowedShiftIds.includes(person.avoidShiftId) ? "" : person.avoidShiftId || "";
       if (migrateMonthDefault && isDemo && !has(availabilityByMonth, month) && Array.isArray(availabilityByMonth[savedMonth])) {
         const weekdays = new Set(availabilityByMonth[savedMonth].map((date) => parseDate(date).getDay()));
         availabilityByMonth[month] = monthDates(month).filter((date) => weekdays.has(parseDate(date).getDay()));
@@ -102,15 +109,20 @@ export function loadState() {
         requestedOffByMonth,
         preferredOffByMonth,
         maxHours: person.maxHours === undefined || migrateDemoPattern ? (type === "正職" ? 40 : 28) : Number(person.maxHours),
-        preferredShiftId: person.preferredShiftId || "",
-        avoidShiftId: person.avoidShiftId || "",
+        allowedShiftIds,
+        preferredShiftId,
+        avoidShiftId,
       };
     });
     const ps = parsed.shifts;
     const oldDefaultShifts = Array.isArray(ps) && ps.length === 2 && ps[0].id === "early" && ps[0].name === "早班" && ps[0].start === "09:00" && ps[0].end === "15:00" && ps[1].id === "late" && ps[1].name === "晚班" && ps[1].start === "16:00" && ps[1].end === "22:00";
     const migrateDemoShifts = migrateReferencePattern && oldDefaultShifts;
+    const migrateDemoShortShift = migrateReferencePattern && Array.isArray(ps) && ps.some((shift) => shift.id === "kc1116" && shift.name === "KC-11-16" && shift.start === "11:00" && shift.end === "16:00" && (shift.breakHours === undefined || Number(shift.breakHours) === 0));
     const shifts = Array.isArray(ps) && !migrateDemoShifts
-      ? ps.map((shift) => ({ id: shift.id, name: shift.name, start: shift.start, end: shift.end, breakHours: shift.breakHours === undefined ? defaultBreakHours(shift.start, shift.end) : Number(shift.breakHours), headcount: shift.headcount, days: shift.days }))
+      ? ps.map((shift) => {
+        const updateShortShift = migrateDemoShortShift && shift.id === "kc1116";
+        return { id: shift.id, name: updateShortShift ? "10:30-16" : shift.name, start: updateShortShift ? "10:30" : shift.start, end: shift.end, breakHours: shift.breakHours === undefined ? defaultBreakHours(shift.start, shift.end) : Number(shift.breakHours), headcount: shift.headcount, days: shift.days };
+      })
       : base.shifts;
     return {
       staff,
@@ -120,7 +132,7 @@ export function loadState() {
         minRestHours: oldSettings.minRestHours === undefined ? base.settings.minRestHours : oldSettings.minRestHours,
         maxConsecutiveDays: oldSettings.maxConsecutiveDays === undefined ? base.settings.maxConsecutiveDays : oldSettings.maxConsecutiveDays,
         monthDefaultVersion: 1,
-        referencePatternVersion: 1,
+        referencePatternVersion: 3,
       },
       result: null,
     };
@@ -133,6 +145,9 @@ export function persist(state) {
   try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); return true; } catch (e) { return false; }
 }
 
+export function canWorkShift(person, shiftId) {
+  return !Array.isArray(person.allowedShiftIds) || person.allowedShiftIds.includes(shiftId);
+}
 export function personMustOffDates(person, month) {
   const values = person.requestedOffByMonth && person.requestedOffByMonth[month];
   return Array.isArray(values) ? values.slice().sort() : [];
@@ -202,6 +217,7 @@ export function createEngine(state) {
   const prefOff = (p) => personPreferredOffDates(p, month);
 
   function eligible(person, slot, assignments) {
+    if (!canWorkShift(person, slot.shiftId)) return false;
     if (!avail(person).includes(slot.date)) return false;
     const current = weeklyHours(assignments, person.id, weekKey(slot.date));
     if (current + slot.hours > Number(person.maxHours) + 0.001) return false;
@@ -259,7 +275,7 @@ export function createEngine(state) {
   function runAttempt(slots) {
     const assignments = [];
     const ordered = slots.map((slot) => {
-      const count = state.staff.filter((p) => avail(p).includes(slot.date)).length;
+      const count = state.staff.filter((p) => avail(p).includes(slot.date) && canWorkShift(p, slot.shiftId)).length;
       return { slot, count, tie: Math.random() };
     }).sort((a, b) => a.count - b.count || a.tie - b.tie).map((x) => x.slot);
     for (const slot of ordered) {
@@ -274,8 +290,10 @@ export function createEngine(state) {
   function shortageReason(slot, assignments) {
     const available = state.staff.filter((p) => avail(p).includes(slot.date));
     if (!available.length) return "該日沒有可排人員（PT 未勾選可上班／正職標記必休）";
+    const qualified = available.filter((p) => canWorkShift(p, slot.shiftId));
+    if (!qualified.length) return "當日可上班的人員都沒有「" + slot.shiftName + "」班別資格";
     const blocked = new Set();
-    available.forEach((p) => {
+    qualified.forEach((p) => {
       const own = assignments.filter((a) => a.employeeId === p.id).map((a) => a.slot);
       if (weeklyHours(assignments, p.id, weekKey(slot.date)) + slot.hours > Number(p.maxHours) + 0.001) blocked.add("每週工時上限");
       if (maxStreak(own.map((x) => x.date).concat(slot.date)) > state.settings.maxConsecutiveDays) blocked.add("連續工作日上限");

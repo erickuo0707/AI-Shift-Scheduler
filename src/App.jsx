@@ -41,7 +41,7 @@ export default function App() {
       const preferredOffByMonth = { ...(existing?.preferredOffByMonth || {}) };
       if (data.type === "正職") { requestedOffByMonth[month] = data.mustOff; preferredOffByMonth[month] = data.preferredOff; }
       else availabilityByMonth[month] = data.available;
-      const person = { id: id || uid("person"), name: data.name, type: data.type, availabilityByMonth, requestedOffByMonth, preferredOffByMonth, maxHours: data.maxHours, preferredShiftId: data.preferredShiftId, avoidShiftId: data.avoidShiftId };
+      const person = { id: id || uid("person"), name: data.name, type: data.type, availabilityByMonth, requestedOffByMonth, preferredOffByMonth, allowedShiftIds: data.allowedShiftIds, maxHours: data.maxHours, preferredShiftId: data.preferredShiftId, avoidShiftId: data.avoidShiftId };
       const idx = s.staff.findIndex((p) => p.id === person.id);
       if (idx < 0) s.staff.push(person); else s.staff[idx] = person;
     });
@@ -63,7 +63,7 @@ export default function App() {
   };
 
   const addShift = () => {
-    mutate((s) => { s.shifts.push({ id: uid("shift"), name: "KC-11-16", start: "11:00", end: "16:00", breakHours: 0, headcount: 1, days: [0, 1, 2, 3, 4, 5, 6] }); });
+    mutate((s) => { s.shifts.push({ id: uid("shift"), name: "10:30-16", start: "10:30", end: "16:00", breakHours: 0, headcount: 1, days: [0, 1, 2, 3, 4, 5, 6] }); });
     toast("已新增班別，請設定時段與人數。");
   };
   const editShift = (id, field, value) => mutate((s) => {

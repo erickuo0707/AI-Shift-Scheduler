@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Dialog } from "../magic/Dialog";
 import { IconX } from "../Icons";
-import { DAY_NAMES, monthDates, offRequestLimit, parseDate, personAvailabilityDates, personMustOffDates, personPreferredOffDates } from "../../lib/scheduler";
+import { DAY_NAMES, defaultBreakHours, monthDates, shiftGrossHours, offRequestLimit, parseDate, personAvailabilityDates, personMustOffDates, personPreferredOffDates } from "../../lib/scheduler";
 
-function initialForm(person, month) {
+function initialForm(person, month, shifts) {
   const type = person ? person.type : "PT";
   const status = {};
   if (person && type === "正職") {
@@ -18,15 +18,16 @@ function initialForm(person, month) {
     avoidShiftId: person ? person.avoidShiftId : "",
     available: new Set(person && type === "PT" ? personAvailabilityDates(person, month) : []),
     status,
+    allowed: new Set(person && Array.isArray(person.allowedShiftIds) ? person.allowedShiftIds : shifts.map((s) => s.id)),
   };
 }
 
 export function StaffDialog({ open, person, state, onClose, onSave, toast }) {
   const month = state.settings.month;
-  const [form, setForm] = useState(() => initialForm(person, month));
+  const [form, setForm] = useState(() => initialForm(person, month, state.shifts));
   const nameRef = useRef(null);
   useEffect(() => {
-    if (open) { setForm(initialForm(person, month)); setTimeout(() => nameRef.current && nameRef.current.focus(), 60); }
+    if (open) { setForm(initialForm(person, month, state.shifts)); setTimeout(() => nameRef.current && nameRef.current.focus(), 60); }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, person?.id, month]);
 
@@ -57,12 +58,15 @@ export function StaffDialog({ open, person, state, onClose, onSave, toast }) {
     e.preventDefault();
     const name = form.name.trim();
     if (!name) { toast("請填寫人員名稱。"); return; }
+    const selectedShiftIds = state.shifts.map((s) => s.id).filter((id) => form.allowed.has(id));
+    if (!selectedShiftIds.length) { toast("請至少勾選一個可排班別。"); return; }
     const mustOff = dates.filter((d) => form.status[d] === "must");
     const preferredOff = dates.filter((d) => form.status[d] === "prefer");
     onSave({
       name, type: form.type, maxHours: Number(form.maxHours),
       preferredShiftId: form.preferredShiftId, avoidShiftId: form.avoidShiftId,
       available: dates.filter((d) => form.available.has(d)), mustOff, preferredOff,
+      allowedShiftIds: selectedShiftIds.length === state.shifts.length ? null : selectedShiftIds,
     });
   };
   const options = (
@@ -123,6 +127,29 @@ export function StaffDialog({ open, person, state, onClose, onSave, toast }) {
                 ? `正職每月依週數建議選 4–5 天休假（目前 ${offCount}／${limit} 天）。點日期切換：一般 → △希望休 → X必休；超過建議天數請先與主管協調。`
                 : "PT 請點選可上班的日期；未選的日期不會安排班表。"}
             </span>
+          </div>
+          <div className="flex flex-col gap-2 sm:col-span-2">
+            <span className="label">可排班別</span>
+            <div className="flex flex-wrap gap-2.5">
+              {!state.shifts.length && <span className="text-[0.85rem] text-dim">請先新增班別。</span>}
+              {state.shifts.map((shift) => {
+                const on = form.allowed.has(shift.id);
+                const breakHours = shift.breakHours === undefined ? defaultBreakHours(shift.start, shift.end) : Number(shift.breakHours);
+                const hours = Math.max(0, shiftGrossHours(shift.start, shift.end) - breakHours).toFixed(1).replace(/\.0$/, "");
+                return (
+                  <button key={shift.id} type="button" aria-pressed={on}
+                    onClick={() => { const a = new Set(form.allowed); if (a.has(shift.id)) a.delete(shift.id); else a.add(shift.id); set({ allowed: a }); }}
+                    className={"flex items-center gap-3 rounded-2xl border-[1.5px] px-4 py-2.5 text-left transition " + (on ? "border-violet-400/60 bg-violet-500/15 shadow-[0_0_20px_-8px_rgba(139,124,255,0.9)]" : "border-white/10 bg-white/[0.03] opacity-70 hover:opacity-100")}>
+                    <span className={"grid size-5 place-items-center rounded-md border text-[0.75rem] " + (on ? "border-violet-300 bg-violet-500 text-white" : "border-white/25")}>{on ? "✓" : ""}</span>
+                    <span className="flex flex-col leading-tight">
+                      <strong className="text-[1rem] text-white">{shift.name}</strong>
+                      <small className="text-[0.78rem] text-dim">{shift.start}–{shift.end} · {hours} 小時</small>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            <span className="text-[0.85rem] text-dim">只會安排已勾選的班別；Sammy 可只勾 10:30-16，其餘人員只勾 8 小時班。</span>
           </div>
           <label className="flex flex-col gap-2">
             <span className="label">每週最高工時</span>

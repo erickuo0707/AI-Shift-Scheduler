@@ -20,7 +20,7 @@ export function StaffPanel({ state, onAdd, onEdit, onDelete, onReset }) {
     >
       <div className="table-wrap">
         <table className="data-table">
-          <thead><tr><th>人員</th><th>類型</th><th>指定月份需求</th><th>每週工時上限</th><th>班別偏好</th><th>操作</th></tr></thead>
+          <thead><tr><th>人員</th><th>類型</th><th>指定月份需求</th><th>每週工時上限</th><th>可排班別／偏好</th><th>操作</th></tr></thead>
           <tbody>
             {!state.staff.length && (
               <tr><td colSpan={6}><div className="p-9 text-center text-dim">尚未新增人員。請先建立團隊名單。</div></td></tr>
@@ -35,7 +35,9 @@ export function StaffPanel({ state, onAdd, onEdit, onDelete, onReset }) {
                 const available = personAvailabilityDates(p, month).map(day).join("、");
                 summary = available ? monthLabel + " 可上：" + available : "尚未勾選可上班日";
               }
+              const allowedNames = (Array.isArray(p.allowedShiftIds) ? p.allowedShiftIds : state.shifts.map((s) => s.id)).map(shiftName).filter(Boolean);
               const prefs = [
+                <span key="c" className="tag tag-soft">可排 {allowedNames.join("、") || "無可用班別"}</span>,
                 p.preferredShiftId && <span key="p" className="tag">偏好 {shiftName(p.preferredShiftId) || "已刪除班別"}</span>,
                 p.avoidShiftId && <span key="a" className="tag tag-soft">避開 {shiftName(p.avoidShiftId) || "已刪除班別"}</span>,
               ].filter(Boolean);
