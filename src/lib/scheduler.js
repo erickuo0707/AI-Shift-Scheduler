@@ -49,16 +49,20 @@ export function redDates(settings, month) {
   return monthDates(month).filter((d) => isWeekend(d) || hol.has(d));
 }
 
+// 門市固定班別：早班、晚班每天都要有人；短班有人能上才排（週一到週五）
+export const FIXED_SHIFTS = [
+  { id: "kc11", name: "早班", start: "11:00", end: "20:00", breakHours: 1, headcount: 1, days: [0, 1, 2, 3, 4, 5, 6], optional: false },
+  { id: "kc12", name: "晚班", start: "12:00", end: "21:00", breakHours: 1, headcount: 1, days: [0, 1, 2, 3, 4, 5, 6], optional: false },
+  { id: "kc1116", name: "短班", start: "10:30", end: "16:00", breakHours: 0, headcount: 1, days: [1, 2, 3, 4, 5], optional: true },
+];
+const fixedShifts = () => FIXED_SHIFTS.map((x) => ({ ...x, days: x.days.slice() }));
+
 export function demoState() {
   const month = nextMonth();
   const daySets = [[1, 2, 4, 5, 6], [2, 3, 4, 5, 0], [1, 3, 4, 6, 0], [1, 2, 5, 6, 0], [2, 3, 5, 6, 0], [1, 3, 4, 5, 0]];
   const people = ["示範正職", "示範 PT 1", "示範 PT 2", "示範 PT 3", "示範 PT 4", "示範 PT 5（10:30短班）"];
   const types = ["正職", "PT", "PT", "PT", "PT", "PT"];
-  const shifts = [
-    { id: "kc11", name: "KC-11", start: "11:00", end: "20:00", breakHours: 1, headcount: 1, days: [0, 1, 2, 3, 4, 5, 6] },
-    { id: "kc12", name: "KC-12", start: "12:00", end: "21:00", breakHours: 1, headcount: 1, days: [0, 1, 2, 3, 4, 5, 6] },
-    { id: "kc1116", name: "10:30-16", start: "10:30", end: "16:00", breakHours: 0, headcount: 1, days: [1, 2, 3, 4, 5], optional: true },
-  ];
+  const shifts = fixedShifts();
   const staff = people.map((name, i) => {
     const type = types[i];
     const availabilityByMonth = {};
@@ -145,16 +149,23 @@ export function loadState() {
         return { id: shift.id, name: updateShortShift ? "10:30-16" : shift.name, start: updateShortShift ? "10:30" : shift.start, end: shift.end, breakHours: shift.breakHours === undefined ? defaultBreakHours(shift.start, shift.end) : Number(shift.breakHours), headcount: shift.headcount, days: shift.days, optional: shift.optional === undefined ? (migrateFeatures && shift.id === "kc1116") : !!shift.optional };
       })
       : base.shifts;
-    // 沒有 10:30–16:00 短班時自動補上（選填班）；原本「全部班別都可排」的人先鎖定成原有班別，短班只排給勾選的人
-    if ((Number(oldSettings.featureVersion) || 0) < 5 && !shifts.some((x) => x.start === "10:30" && x.end === "16:00")) {
-      const existingIds = shifts.map((x) => x.id);
-      const id = existingIds.includes("kc1116") ? uid("shift") : "kc1116";
-      staff.forEach((p) => { if (!Array.isArray(p.allowedShiftIds)) p.allowedShiftIds = existingIds.slice(); });
-      shifts.push({ id, name: "10:30-16", start: "10:30", end: "16:00", breakHours: 0, headcount: 1, days: [1, 2, 3, 4, 5], optional: true });
-    }
+    // 班別固定為 FIXED_SHIFTS：舊班別依時間（或 id）對應過去，人員的可排／偏好／避開班別一併換成新 id
+    const idMap = new Map();
+    shifts.forEach((old) => {
+      const match = FIXED_SHIFTS.find((f) => f.start === old.start && f.end === old.end) || FIXED_SHIFTS.find((f) => f.id === old.id);
+      if (match) idMap.set(old.id, match.id);
+    });
+    const oldIds = shifts.map((x) => x.id);
+    staff.forEach((p) => {
+      const source = Array.isArray(p.allowedShiftIds) ? p.allowedShiftIds : oldIds; // 原本「全部可排」＝原有的班別
+      const mapped = [...new Set(source.map((id) => idMap.get(id)).filter(Boolean))];
+      p.allowedShiftIds = mapped.length ? (mapped.length === FIXED_SHIFTS.length ? null : mapped) : ["kc11", "kc12"];
+      p.preferredShiftId = idMap.get(p.preferredShiftId) || "";
+      p.avoidShiftId = idMap.get(p.avoidShiftId) || "";
+    });
     return {
       staff,
-      shifts,
+      shifts: fixedShifts(),
       settings: {
         month,
         minRestHours: oldSettings.minRestHours === undefined ? base.settings.minRestHours : oldSettings.minRestHours,

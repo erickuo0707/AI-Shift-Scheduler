@@ -19,7 +19,7 @@ function initialForm(person, month, shifts) {
     available: new Set(person && type === "PT" ? personAvailabilityDates(person, month) : []),
     status,
     lead: person ? !!person.lead : false,
-    allowed: new Set(person && Array.isArray(person.allowedShiftIds) ? person.allowedShiftIds : shifts.map((s) => s.id)),
+    allowed: new Set(person ? (Array.isArray(person.allowedShiftIds) ? person.allowedShiftIds : shifts.map((s) => s.id)) : shifts.filter((s) => !s.optional).map((s) => s.id)),
   };
 }
 
@@ -145,8 +145,7 @@ export function StaffDialog({ open, person, state, onClose, onSave, toast }) {
           <div className="flex flex-col gap-2 sm:col-span-2">
             <span className="label">可排班別</span>
             <div className="flex flex-wrap gap-2.5">
-              {!state.shifts.length && <span className="text-[0.85rem] text-dim">請先新增班別。</span>}
-              {state.shifts.map((shift) => {
+                            {state.shifts.map((shift) => {
                 const on = form.allowed.has(shift.id);
                 const breakHours = shift.breakHours === undefined ? defaultBreakHours(shift.start, shift.end) : Number(shift.breakHours);
                 const h = Math.max(0, shiftGrossHours(shift.start, shift.end) - breakHours);
@@ -164,7 +163,7 @@ export function StaffDialog({ open, person, state, onClose, onSave, toast }) {
                 );
               })}
             </div>
-            <span className="text-[0.85rem] text-dim">只會安排已勾選的班別。只上短班的人（例如 Sammy）請只勾短班；班別清單沒有短班時，先到「班別與每日人力需求」按「新增班別」。</span>
+            <span className="text-[0.85rem] text-dim">只會安排已勾選的班別。只上短班的人（例如 Sammy）請只勾短班；早班、晚班每天都要有人，短班有人能上才排（週一到週五）。</span>
           </div>
           <label className="flex flex-col gap-2">
             <span className="label">每週最高工時</span>

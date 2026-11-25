@@ -4,7 +4,6 @@ import { Header } from "./components/sections/Header";
 import { Hero } from "./components/sections/Hero";
 import { StaffPanel } from "./components/sections/StaffPanel";
 import { StaffDialog } from "./components/sections/StaffDialog";
-import { ShiftPanel } from "./components/sections/ShiftPanel";
 import { SettingsPanel } from "./components/sections/SettingsPanel";
 import { ResultPanel } from "./components/sections/ResultPanel";
 import { createEngine, demoState, exportBackup, exportCsv, loadState, offRequestLimit, persist, uid } from "./lib/scheduler";
@@ -61,30 +60,6 @@ export default function App() {
     toast("已載入示範資料。");
   };
 
-  const addShift = () => {
-    mutate((s) => { s.shifts.push({ id: uid("shift"), name: "10:30-16", start: "10:30", end: "16:00", breakHours: 0, headcount: 1, days: [0, 1, 2, 3, 4, 5, 6], optional: true }); });
-    toast("已新增班別，請設定時段與人數。");
-  };
-  const editShift = (id, field, value) => mutate((s) => {
-    const item = s.shifts.find((x) => x.id === id); if (!item) return;
-    if (field === "days") {
-      const set = new Set(item.days || []);
-      if (value.checked) set.add(value.day); else set.delete(value.day);
-      item.days = [...set].sort((a, b) => a - b);
-    } else if (field === "headcount") item.headcount = Math.max(1, Number(value) || 1);
-    else if (field === "breakHours") item.breakHours = Math.max(0, Math.min(8, Number(value) || 0));
-    else if (field === "optional") item.optional = !!value;
-    else item[field] = value;
-  });
-  const deleteShift = (id) => {
-    if (!confirm("確定刪除此班別？")) return;
-    mutate((s) => {
-      s.shifts = s.shifts.filter((x) => x.id !== id);
-      s.staff.forEach((p) => { if (p.preferredShiftId === id) p.preferredShiftId = ""; if (p.avoidShiftId === id) p.avoidShiftId = ""; });
-    });
-    toast("已刪除班別。");
-  };
-
   const setSetting = (key, value) => mutate((s) => {
     if (key === "month") s.settings.month = value || s.settings.month;
     if (key === "minRestHours") s.settings.minRestHours = Math.min(24, Math.max(0, Number(value) || 0));
@@ -124,7 +99,6 @@ export default function App() {
       <main className="mx-auto mb-24 w-[min(1320px,calc(100%-40px))] max-sm:w-[calc(100%-22px)]">
         <Hero />
         <StaffPanel state={state} onAdd={() => setDialog({ open: true, personId: "" })} onEdit={(id) => setDialog({ open: true, personId: id })} onDelete={deletePerson} onReset={resetDemo} />
-        <ShiftPanel state={state} onAdd={addShift} onEdit={editShift} onDelete={deleteShift} />
         <SettingsPanel state={state} onSetting={setSetting} onGenerate={generate} busy={busy} monthsWithData={monthsWithData} />
         {state.result && <ResultPanel state={state} onCsv={() => exportCsv(state)} onBackup={() => exportBackup(state)} />}
         <div className="no-print p-6 text-center text-[0.85rem] text-dim">ShiftWell · 排班建議由本機規則引擎產生，所有資料保存在目前瀏覽器。</div>
