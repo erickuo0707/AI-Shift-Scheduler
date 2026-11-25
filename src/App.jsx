@@ -41,7 +41,7 @@ export default function App() {
       const preferredOffByMonth = { ...(existing?.preferredOffByMonth || {}) };
       if (data.type === "正職") { requestedOffByMonth[month] = data.mustOff; preferredOffByMonth[month] = data.preferredOff; }
       else availabilityByMonth[month] = data.available;
-      const person = { id: id || uid("person"), name: data.name, type: data.type, availabilityByMonth, requestedOffByMonth, preferredOffByMonth, allowedShiftIds: data.allowedShiftIds, maxHours: data.maxHours, preferredShiftId: data.preferredShiftId, avoidShiftId: data.avoidShiftId };
+      const person = { id: id || uid("person"), name: data.name, type: data.type, availabilityByMonth, requestedOffByMonth, preferredOffByMonth, allowedShiftIds: data.allowedShiftIds, lead: data.lead, maxHours: data.maxHours, preferredShiftId: data.preferredShiftId, avoidShiftId: data.avoidShiftId };
       const idx = s.staff.findIndex((p) => p.id === person.id);
       if (idx < 0) s.staff.push(person); else s.staff[idx] = person;
     });
@@ -63,7 +63,7 @@ export default function App() {
   };
 
   const addShift = () => {
-    mutate((s) => { s.shifts.push({ id: uid("shift"), name: "10:30-16", start: "10:30", end: "16:00", breakHours: 0, headcount: 1, days: [0, 1, 2, 3, 4, 5, 6] }); });
+    mutate((s) => { s.shifts.push({ id: uid("shift"), name: "10:30-16", start: "10:30", end: "16:00", breakHours: 0, headcount: 1, days: [0, 1, 2, 3, 4, 5, 6], optional: true }); });
     toast("已新增班別，請設定時段與人數。");
   };
   const editShift = (id, field, value) => mutate((s) => {
@@ -74,6 +74,7 @@ export default function App() {
       item.days = [...set].sort((a, b) => a - b);
     } else if (field === "headcount") item.headcount = Math.max(1, Number(value) || 1);
     else if (field === "breakHours") item.breakHours = Math.max(0, Math.min(8, Number(value) || 0));
+    else if (field === "optional") item.optional = !!value;
     else item[field] = value;
   });
   const deleteShift = (id) => {
@@ -89,6 +90,12 @@ export default function App() {
     if (key === "month") s.settings.month = value || s.settings.month;
     if (key === "minRestHours") s.settings.minRestHours = Math.min(24, Math.max(0, Number(value) || 0));
     if (key === "maxConsecutiveDays") s.settings.maxConsecutiveDays = Math.min(7, Math.max(1, Number(value) || 1));
+    if (key === "extendToFullDay") s.settings.extendToFullDay = !!value;
+    if (key === "holidays") {
+      s.settings.holidaysByMonth = { ...(s.settings.holidaysByMonth || {}) };
+      if (value === null) delete s.settings.holidaysByMonth[s.settings.month];
+      else s.settings.holidaysByMonth[s.settings.month] = value;
+    }
   });
 
   const generate = () => {

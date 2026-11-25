@@ -1,7 +1,7 @@
 import { Panel } from "../Panel";
 import { NumberTicker } from "../magic/NumberTicker";
 import { IconCheck, IconDownload, IconPrinter, IconSave } from "../Icons";
-import { addDays, formatDateLabel, isoDate, monthDates, parseDate, personAvailabilityDates, personMustOffDates, personPreferredOffDates, weekKey } from "../../lib/scheduler";
+import { addDays, coveredSlotIds, formatDateLabel, isoDate, monthDates, parseDate, personAvailabilityDates, personMustOffDates, personPreferredOffDates, weekKey } from "../../lib/scheduler";
 
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -9,9 +9,15 @@ export function ResultPanel({ state, onCsv, onBackup }) {
   const result = state.result;
   const month = state.settings.month;
   const dates = monthDates(month);
-  const unfilled = result.slots.length - result.assignments.length;
-  const coverage = result.slots.length ? Math.round((result.assignments.length / result.slots.length) * 100) : 0;
-  const used = new Set(result.assignments.map((a) => a.employeeId)).size;
+  const covered = coveredSlotIds(result);
+  const required = result.slots.filter((s) => !s.optional);
+  const optional = result.slots.filter((s) => s.optional);
+  const unfilled = result.shortages.length;
+  const coveredReq = required.filter((s) => covered.has(s.id)).length;
+  const coverage = required.length ? Math.round((coveredReq / required.length) * 100) : 0;
+  const extendedCount = result.assignments.filter((a) => a.slot.extended).length;
+  const redSet = new Set(result.redDates || []);
+  const offLabels = result.offLabels || {};
   const avoidCount = result.assignments.filter((a) => {
     const p = state.staff.find((x) => x.id === a.employeeId);
     return p && (p.avoidShiftId === a.slot.shiftId || personPreferredOffDates(p, month).includes(a.slot.date));
@@ -44,7 +50,7 @@ export function ResultPanel({ state, onCsv, onBackup }) {
   const kpis = [
     ["人力覆蓋率", coverage, "%", true],
     ["班位缺額", unfilled, "", unfilled === 0],
-    ["已排人員", used, " 人", true],
+    ["全天班延長", extendedCount, " 次", extendedCount === 0],
     ["偏好衝突", avoidCount, " 班", avoidCount === 0],
   ];
 
@@ -54,7 +60,7 @@ export function ResultPanel({ state, onCsv, onBackup }) {
       beam
       icon={<IconCheck />}
       title="排班建議"
-      sub={formatDateLabel(dates[0]) + " 至 " + formatDateLabel(dates[dates.length - 1]) + " · " + result.slots.length + " 個班位"}
+      sub={formatDateLabel(dates[0]) + " 至 " + formatDateLabel(dates[dates.length - 1]) + " · 必要班位 " + required.length + " 個" + (optional.length ? "，選填 " + optional.length + " 個（已排 " + optional.filter((s) => covered.has(s.id)).length + "）" : "")}
       actions={<>
         <button className="btn" onClick={onCsv}><IconDownload />下載 CSV</button>
         <button className="btn" onClick={onBackup}><IconSave />備份設定</button>
@@ -63,8 +69,8 @@ export function ResultPanel({ state, onCsv, onBackup }) {
     >
       <div className={"mb-5 rounded-[18px] border px-6 py-5 text-[1rem] font-semibold " + (unfilled ? "border-amber-400/30 bg-amber-400/10 text-amber-200" : "border-emerald-400/30 bg-emerald-400/10 text-emerald-200")}>
         {unfilled
-          ? `目前排出 ${result.assignments.length} / ${result.slots.length} 個班位，還有 ${unfilled} 個缺額。請查看原因，調整人員可上班日期、班別需求或休息條件後重新生成。`
-          : "所有班位都已安排。系統遵守目前設定的可上班日期、每週工時上限、休息間隔與連續工作日上限。"}
+          ? `必要班位排出 ${coveredReq} / ${required.length} 個，還有 ${unfilled} 個缺額。請查看原因，調整人員可上班日期、班別需求或休息條件後重新生成。`
+          : `所有必要班位都已安排${extendedCount ? `（其中 ${extendedCount} 天因缺人延長為全天班）` : ""}。系統遵守可上班日期、正職月休與一例一休、休息間隔與連續工作日上限。`}
       </div>
 
       <div className="my-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -79,7 +85,7 @@ export function ResultPanel({ state, onCsv, onBackup }) {
         ))}
       </div>
 
-      <p className="mb-3.5 text-[0.88rem] text-dim">PT 的 X 代表未勾選可上班；正職的 X 是必休、△ 是希望休、休是未排班日。班別時間會列在員工與日期交會的格子中。</p>
+      <p className="mb-3.5 text-[0.88rem] text-dim">紅色日期為紅字（週末／國定假日）。PT 的 X 代表未勾選可上班；正職休假標「例假日／休息日」，X 是自己畫的必休、△ 是希望休。<span className="text-sky-300">藍色</span>是缺人時延長的全天班。</p>
 
       <div className="grid gap-5">
         <div className="rounded-2xl bg-gradient-to-r from-indigo-950 via-violet-900/80 to-indigo-950 p-4 text-center text-[1.4rem] font-black tracking-wide text-white ring-1 ring-violet-400/30">
@@ -92,7 +98,7 @@ export function ResultPanel({ state, onCsv, onBackup }) {
                 <tr><th>Name</th>{WEEKDAYS.map((d) => <th key={d}>{d}</th>)}</tr>
                 <tr className="date-row"><th>Name</th>{weekDates.map((date) => {
                   const d = parseDate(date); const outside = date.slice(0, 7) !== month;
-                  return <th key={date} className={outside ? "outside" : ""}>{d.getMonth() + 1}/{d.getDate()}</th>;
+                  return <th key={date} className={outside ? "outside" : redSet.has(date) ? "red" : ""}>{d.getMonth() + 1}/{d.getDate()}</th>;
                 })}</tr>
               </thead>
               <tbody>
@@ -111,7 +117,7 @@ export function ResultPanel({ state, onCsv, onBackup }) {
                           content = (
                             <div className="grid justify-items-center gap-1">
                               {shifts.map((slot) => (
-                                <span key={slot.id} className={"work" + (preferredOff.has(date) ? " requested" : "")}>
+                                <span key={slot.id} className={"work" + (slot.extended ? " extended" : preferredOff.has(date) ? " requested" : "")}>
                                   <strong>{slot.shiftName}</strong>
                                   <small>{slot.start}–{slot.end}</small>
                                   {preferredOff.has(date) && <em>△ 希望休</em>}
@@ -119,6 +125,8 @@ export function ResultPanel({ state, onCsv, onBackup }) {
                               ))}
                             </div>
                           );
+                        } else if (inside && offLabels[person.id] && offLabels[person.id][date]) {
+                          content = <span className="leave">{mustOff.has(date) && <b>X </b>}{preferredOff.has(date) && <b>△ </b>}{offLabels[person.id][date]}</span>;
                         } else if (inside && mustOff.has(date)) content = <span className="off">X</span>;
                         else if (inside && preferredOff.has(date)) content = <span className="prefer">△</span>;
                         else if (inside && person.type === "正職") content = <span className="rest">休</span>;
@@ -169,6 +177,9 @@ export function ResultPanel({ state, onCsv, onBackup }) {
                 else if ([...byWeek.values()].some((v) => v > max)) reminder = "某週超過工時上限";
                 else if (personPreferredOffDates(person, month).some((d) => own.some((a) => a.slot.date === d))) reminder = "含希望休日期";
                 else if (person.avoidShiftId && own.some((a) => a.slot.shiftId === person.avoidShiftId)) reminder = "含避開班別";
+                const ext = own.filter((a) => a.slot.extended).length;
+                if (ext) reminder = "含 " + ext + " 天全天班" + ([...byWeek.values()].some((v) => v > max) ? "，某週超過工時上限" : "");
+                if (person.type === "正職" && offLabels[person.id]) reminder = "本月休 " + Object.keys(offLabels[person.id]).length + " 天" + (reminder === "—" ? "" : "；" + reminder);
                 const pct = max ? Math.min(100, (Math.max(...byWeek.values(), 0) / max) * 100) : 0;
                 return (
                   <tr key={person.id}>

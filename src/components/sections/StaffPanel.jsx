@@ -43,7 +43,7 @@ export function StaffPanel({ state, onAdd, onEdit, onDelete, onReset }) {
               ].filter(Boolean);
               return (
                 <tr key={p.id}>
-                  <td><span className="whitespace-nowrap text-[1rem] font-extrabold text-white">{p.name}</span></td>
+                  <td><span className="whitespace-nowrap text-[1rem] font-extrabold text-white">{p.name}</span>{p.lead && <span className="tag ml-2 border-amber-300/40 bg-amber-300/15 text-amber-200">★ 帶班</span>}</td>
                   <td><span className={p.type === "正職" ? "tag" : "tag tag-cyan"}>{p.type}</span></td>
                   <td className="text-[#c9cdf0]">{summary}</td>
                   <td className="whitespace-nowrap">{p.maxHours} 小時／週</td>

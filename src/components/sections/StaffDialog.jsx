@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Dialog } from "../magic/Dialog";
 import { IconX } from "../Icons";
-import { DAY_NAMES, defaultBreakHours, monthDates, shiftGrossHours, offRequestLimit, parseDate, personAvailabilityDates, personMustOffDates, personPreferredOffDates } from "../../lib/scheduler";
+import { DAY_NAMES, defaultBreakHours, monthDates, redDates, shiftGrossHours, offRequestLimit, parseDate, personAvailabilityDates, personMustOffDates, personPreferredOffDates } from "../../lib/scheduler";
 
 function initialForm(person, month, shifts) {
   const type = person ? person.type : "PT";
@@ -18,6 +18,7 @@ function initialForm(person, month, shifts) {
     avoidShiftId: person ? person.avoidShiftId : "",
     available: new Set(person && type === "PT" ? personAvailabilityDates(person, month) : []),
     status,
+    lead: person ? !!person.lead : false,
     allowed: new Set(person && Array.isArray(person.allowedShiftIds) ? person.allowedShiftIds : shifts.map((s) => s.id)),
   };
 }
@@ -37,6 +38,9 @@ export function StaffDialog({ open, person, state, onClose, onSave, toast }) {
   const isFull = form.type === "正職";
   const offCount = Object.values(form.status).filter(Boolean).length;
   const limit = offRequestLimit(month);
+  const redList = redDates(state.settings, month);
+  const redCount = redList.length;
+  const redSet = new Set(redList);
 
   const changeType = (type) => {
     if (type === form.type) return;
@@ -67,6 +71,7 @@ export function StaffDialog({ open, person, state, onClose, onSave, toast }) {
       preferredShiftId: form.preferredShiftId, avoidShiftId: form.avoidShiftId,
       available: dates.filter((d) => form.available.has(d)), mustOff, preferredOff,
       allowedShiftIds: selectedShiftIds.length === state.shifts.length ? null : selectedShiftIds,
+      lead: form.lead,
     });
   };
   const options = (
@@ -102,6 +107,15 @@ export function StaffDialog({ open, person, state, onClose, onSave, toast }) {
               ))}
             </div>
           </div>
+          <div className="flex flex-col gap-2">
+            <span className="label">資深・可帶班</span>
+            <button type="button" aria-pressed={form.lead} onClick={() => set({ lead: !form.lead })}
+              className={"flex items-center gap-3 rounded-2xl border-[1.5px] px-4 py-2.5 text-left transition " + (form.lead ? "border-amber-300/60 bg-amber-300/10" : "border-white/10 bg-white/[0.03] hover:border-white/25")}>
+              <span className={"relative h-6 w-11 rounded-full transition " + (form.lead ? "bg-amber-400" : "bg-white/15")}><span className={"absolute top-0.5 size-5 rounded-full bg-white shadow transition-all " + (form.lead ? "left-[22px]" : "left-0.5")} /></span>
+              <span className="text-[0.9rem] font-bold text-[#d8dcf6]">{form.lead ? "★ 帶班人員" : "一般人員"}</span>
+            </button>
+            <span className="text-[0.8rem] text-dim">每天盡量至少排一位帶班的人；帶班的人同天上班或同天休都可以。</span>
+          </div>
           <div className="flex flex-col gap-2 sm:col-span-2">
             <span className="label">{isFull ? "正職休假需求" : "PT 可上班日期"}</span>
             <span className="text-[0.85rem] text-dim">{month.replace("-", "年")}月</span>
@@ -116,7 +130,7 @@ export function StaffDialog({ open, person, state, onClose, onSave, toast }) {
                 return (
                   <button key={date} type="button" onClick={() => toggleDate(date)} aria-pressed={isFull ? !!st : on} aria-label={date + " " + (label || "未勾選")}
                     className={"date-cell flex flex-col items-center justify-center gap-0.5 px-1 py-1.5 " + (on ? "on" : st === "must" ? "must" : st === "prefer" ? "prefer" : "")}>
-                    <strong className="text-[1.05rem] leading-none text-white">{n}</strong>
+                    <strong className={"text-[1.05rem] leading-none " + (redSet.has(date) ? "text-rose-300" : "text-white")}>{n}</strong>
                     <small className={"text-[0.66rem] font-extrabold leading-none " + (st === "must" ? "text-rose-300" : st === "prefer" ? "text-amber-300" : on ? "text-violet-200" : "text-dim")}>{label || "—"}</small>
                   </button>
                 );
@@ -124,7 +138,7 @@ export function StaffDialog({ open, person, state, onClose, onSave, toast }) {
             </div>
             <span className="text-[0.85rem] leading-relaxed text-dim">
               {isFull
-                ? `正職每月依週數建議選 4–5 天休假（目前 ${offCount}／${limit} 天）。點日期切換：一般 → △希望休 → X必休；超過建議天數請先與主管協調。`
+                ? `正職本月可休 ${redCount} 天（＝當月紅字天數），可自選 4–5 天（目前 ${offCount}／${limit} 天），其餘由系統安排並符合每週休 2 天。點日期切換：一般 → △希望休 → X必休。`
                 : "PT 請點選可上班的日期；未選的日期不會安排班表。"}
             </span>
           </div>

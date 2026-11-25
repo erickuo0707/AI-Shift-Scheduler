@@ -9,7 +9,7 @@ export function ShiftPanel({ state, onAdd, onEdit, onDelete }) {
       className="no-print"
       icon={<IconClock />}
       title="班別與每日人力需求"
-      sub="每個班別可設定時段、每班人數與適用星期。"
+      sub="每個班別可設定時段、每班人數、適用星期，以及必要或選填。"
       actions={<button className="btn" onClick={onAdd}><IconPlus />新增班別</button>}
     >
       <div className="grid gap-4">
@@ -38,6 +38,16 @@ export function ShiftPanel({ state, onAdd, onEdit, onDelete }) {
             </label>
             <div className="max-lg:col-span-2 max-lg:justify-self-end">
               <button className="btn btn-sm btn-danger" onClick={() => onDelete(s.id)}>刪除</button>
+            </div>
+            <div className="col-span-full flex flex-wrap items-center gap-3">
+              <span className="label">班別性質</span>
+              <div className="grid grid-cols-2 gap-1 rounded-2xl border border-white/10 bg-white/[0.04] p-1">
+                {[[false, "必要班"], [true, "選填班"]].map(([v, t]) => (
+                  <button key={t} type="button" aria-pressed={!!s.optional === v} onClick={() => onEdit(s.id, "optional", v)}
+                    className={"rounded-xl px-4 py-1.5 text-[0.92rem] font-extrabold transition " + (!!s.optional === v ? "bg-gradient-to-r from-violet-500 to-cyan-500 text-white" : "text-dim hover:text-white")}>{t}</button>
+                ))}
+              </div>
+              <span className="text-[0.82rem] text-dim">{s.optional ? "有人能排才排，沒排到不算缺額（例如短班）" : "每天一定要有人；缺人時可延長同天的人為全天班"}</span>
             </div>
             <div className="col-span-full flex flex-col gap-2">
               <span className="label">適用星期</span>
