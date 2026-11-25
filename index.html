@@ -85,10 +85,21 @@
     .kpi strong{display:block;font-size:23px;letter-spacing:-.03em;margin-top:3px}
     .kpi strong.green{color:var(--green)}
     .kpi strong.orange{color:var(--orange)}
-    .schedule-table td{min-width:130px}
-    .schedule-table td:first-child{min-width:155px}
-    .assignment{display:inline-flex;margin:2px 4px 2px 0;padding:5px 8px;border-radius:8px;background:#edf5f0;color:#285c47;font-weight:700;font-size:11px}
-    .vacancy{display:inline-flex;margin:2px 4px 2px 0;padding:5px 8px;border-radius:8px;background:var(--red-bg);color:var(--red);font-weight:800;font-size:11px}
+    .calendar-legend{font-size:11px;color:var(--muted);margin:0 0 9px}
+    .calendar-weeks{display:grid;gap:12px}
+    .rota-week{break-inside:avoid;page-break-inside:avoid}
+    .rota-week table{width:100%;min-width:960px;table-layout:fixed}
+    .rota-week th,.rota-week td{text-align:center;vertical-align:middle;padding:7px 5px;font-size:11px}
+    .rota-week th:first-child,.rota-week td:first-child{text-align:left;min-width:120px;width:120px}
+    .rota-week .date-row th{background:#fff4e8;color:#594538}
+    .rota-week .outside-month{background:#f1f3f0;color:#aab2ac}
+    .rota-week .staff-name{font-weight:800;text-decoration:underline;font-style:italic}
+    .rota-week .off-mark{color:#a5aaa6;font-size:10px}
+    .rota-week .shift-times{display:grid;gap:3px;justify-items:center}
+    .rota-week .work-time{display:inline-flex;white-space:nowrap;padding:3px 5px;border-radius:5px;background:#e8f0ff;color:#2553a6;font-size:10px;font-weight:700}
+    .rota-week .shortage-row th,.rota-week .shortage-row td{background:#fff9ed}
+    .rota-week .vacancy{display:block;margin:2px auto}
+    .rota-week .shortage-reason{display:block;font-size:9px;color:var(--muted)}
     .sub-table{margin-top:18px}
     .disclaimer{font-size:11px;color:var(--muted);margin-top:14px}
     .dialog{border:0;border-radius:18px;padding:0;width:min(650px,calc(100% - 24px));box-shadow:0 25px 80px rgba(16,40,31,.28)}
@@ -173,10 +184,8 @@
       </div>
       <div id="resultBanner" class="result-banner"></div>
       <div class="kpis" id="kpis"></div>
-      <div class="table-wrap"><table class="schedule-table">
-        <thead id="scheduleHead"></thead>
-        <tbody id="scheduleRows"></tbody>
-      </table></div>
+      <div class="calendar-legend">班表按週分區；X 代表當天不能上班，空白代表可上班但未排班，時間代表已排班。</div>
+      <div class="calendar-weeks" id="scheduleCalendar"></div>
       <div class="sub-table">
         <h2 style="font-size:15px;margin:0 0 10px">個人工時概覽</h2>
         <div class="table-wrap"><table>
@@ -638,21 +647,67 @@
         const slot=result.slots.find(s=>s.id===item.slotId);if(!slot)return;
         const group=groupMap.get(slot.date+"|"+slot.shiftId);if(group)group.reasons.push(item.reason);
       });
-      const scheduleShifts=state.shifts.slice().sort((a,b)=>String(a.start).localeCompare(String(b.start)));
-      $("#scheduleHead").innerHTML="<tr><th>日期</th><th>星期</th>"+scheduleShifts.map(shift=>'<th><strong>'+esc(shift.name)+'</strong><br><span class="muted">'+esc(shift.start)+'–'+esc(shift.end)+'</span></th>').join("")+"</tr>";
-      $("#scheduleRows").innerHTML=dates.map(date=>{
-        const day=parseDate(date);
-        const cells=scheduleShifts.map(shift=>{
-          const group=groupMap.get(date+"|"+shift.id);
-          if(!group)return '<td><span class="muted">—</span></td>';
-          const names=group.people.map(name=>'<span class="assignment">'+esc(name)+'</span>').join("")||'<span class="muted">尚無安排</span>';
-          const missing=group.slots.length-group.people.length;
-          const vacancies=missing?'<div><span class="vacancy">缺 '+missing+' 人</span><div class="muted">'+esc([...new Set(group.reasons)].join("；"))+'</div></div>':'<span class="tag">已補滿</span>';
-          return '<td><div class="assignment-list">'+names+'</div>'+vacancies+'</td>';
+      const assignmentMap=new Map();
+      result.assignments.forEach(a=>{
+        const key=a.employeeId+"|"+a.slot.date;
+        if(!assignmentMap.has(key))assignmentMap.set(key,[]);
+        assignmentMap.get(key).push(a.slot);
+      });
+      assignmentMap.forEach(items=>items.sort((a,b)=>a.start.localeCompare(b.start)));
+      const shortagesByDate=new Map();
+      (result.shortages||[]).forEach(item=>{
+        const slot=result.slots.find(s=>s.id===item.slotId);if(!slot)return;
+        if(!shortagesByDate.has(slot.date))shortagesByDate.set(slot.date,[]);
+        const dayShortages=shortagesByDate.get(slot.date);
+        let shortage=dayShortages.find(x=>x.shiftId===slot.shiftId);
+        if(!shortage){shortage={shiftId:slot.shiftId,shiftName:slot.shiftName,count:0,reasons:new Set()};dayShortages.push(shortage)}
+        shortage.count++;
+        if(item.reason)shortage.reasons.add(item.reason);
+      });
+      const firstDay=parseDate(dates[0]);
+      let weekStart=addDays(firstDay,-firstDay.getDay());
+      const lastDay=parseDate(dates[dates.length-1]);
+      const weekdays=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+      const weeks=[];
+      while(weekStart<=lastDay){
+        weeks.push(Array.from({length:7},(_,i)=>isoDate(addDays(weekStart,i))));
+        weekStart=addDays(weekStart,7);
+      }
+      const weekTables=weeks.map(weekDates=>{
+        const weekdayHeaders=weekdays.map(day=>"<th>"+day+"</th>").join("");
+        const dateHeaders=weekDates.map(date=>{
+          const day=parseDate(date);
+          const outside=date.slice(0,7)!==state.settings.month;
+          return '<th class="date-row'+(outside?" outside-month":"")+'">'+(day.getMonth()+1)+"/"+day.getDate()+"</th>";
         }).join("");
-        const dateText=day.getFullYear()+"/"+pad(day.getMonth()+1)+"/"+pad(day.getDate());
-        return '<tr><td><strong>'+dateText+'</strong></td><td>'+dayLabel(day.getDay())+'</td>'+cells+'</tr>';
+        const staffRows=state.staff.map(person=>{
+          const available=new Set(personAvailabilityDates(person,state.settings.month));
+          const cells=weekDates.map(date=>{
+            const inside=date.slice(0,7)===state.settings.month;
+            const shifts=assignmentMap.get(person.id+"|"+date)||[];
+            let content="";
+            if(inside&&shifts.length){
+              content='<div class="shift-times">'+shifts.map(slot=>'<span class="work-time">'+esc(slot.start)+'–'+esc(slot.end)+'</span>').join("")+'</div>';
+            }else if(inside&&!available.has(date)){
+              content='<span class="off-mark">X</span>';
+            }
+            return '<td class="'+(!inside?"outside-month":"")+'">'+content+'</td>';
+          }).join("");
+          return '<tr><th scope="row" class="staff-name">'+esc(person.name)+'</th>'+cells+'</tr>';
+        }).join("");
+        const shortageCells=weekDates.map(date=>{
+          if(date.slice(0,7)!==state.settings.month)return '<td class="outside-month"></td>';
+          const items=shortagesByDate.get(date)||[];
+          const content=items.length?items.map(item=>{
+            const reasons=[...item.reasons].join("；");
+            return '<span class="vacancy">'+esc(item.shiftName)+' 缺 '+item.count+' 人</span>'+(reasons?'<small class="shortage-reason">'+esc(reasons)+'</small>':"");
+          }).join(""):'<span class="muted">—</span>';
+          return '<td>'+content+'</td>';
+        }).join("");
+        return '<div class="table-wrap rota-week"><table class="schedule-table"><thead><tr><th>Name</th>'+weekdayHeaders+'</tr><tr class="date-row"><th>Name</th>'+dateHeaders+'</tr></thead><tbody>'+staffRows+'<tr class="shortage-row"><th scope="row">人力缺額</th>'+shortageCells+'</tr></tbody></table></div>';
       }).join("");
+      const [scheduleYear,scheduleMonth]=state.settings.month.split("-").map(Number);
+      $("#scheduleCalendar").innerHTML='<div class="calendar-title">'+scheduleYear+' 年 '+scheduleMonth+' 月排班表</div>'+weekTables;
       const workload=state.staff.map(person=>{
         const own=result.assignments.filter(a=>a.employeeId===person.id);
         const hours=own.reduce((sum,a)=>sum+a.slot.hours,0);
