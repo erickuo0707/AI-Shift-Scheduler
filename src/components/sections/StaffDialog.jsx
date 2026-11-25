@@ -135,7 +135,8 @@ export function StaffDialog({ open, person, state, onClose, onSave, toast }) {
               {state.shifts.map((shift) => {
                 const on = form.allowed.has(shift.id);
                 const breakHours = shift.breakHours === undefined ? defaultBreakHours(shift.start, shift.end) : Number(shift.breakHours);
-                const hours = Math.max(0, shiftGrossHours(shift.start, shift.end) - breakHours).toFixed(1).replace(/\.0$/, "");
+                const h = Math.max(0, shiftGrossHours(shift.start, shift.end) - breakHours);
+                const hours = Number.isInteger(h) ? String(h) : h.toFixed(1);
                 return (
                   <button key={shift.id} type="button" aria-pressed={on}
                     onClick={() => { const a = new Set(form.allowed); if (a.has(shift.id)) a.delete(shift.id); else a.add(shift.id); set({ allowed: a }); }}
@@ -149,7 +150,7 @@ export function StaffDialog({ open, person, state, onClose, onSave, toast }) {
                 );
               })}
             </div>
-            <span className="text-[0.85rem] text-dim">只會安排已勾選的班別；Sammy 可只勾 10:30-16，其餘人員只勾 8 小時班。</span>
+            <span className="text-[0.85rem] text-dim">只會安排已勾選的班別；短班人員請只勾 10:30-16，其餘人員只勾 8 小時班。</span>
           </div>
           <label className="flex flex-col gap-2">
             <span className="label">每週最高工時</span>

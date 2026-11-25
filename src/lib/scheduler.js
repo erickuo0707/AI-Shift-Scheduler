@@ -86,11 +86,10 @@ export function loadState() {
       const sampleIndex = Number.isFinite(idNumber) ? idNumber : index;
       const migrateDemoPattern = migrateReferencePattern && isDemoSample;
       const type = migrateDemoPattern ? (demoTypes[sampleIndex] || "PT") : person.type === "正職" ? "正職" : "PT";
-      const isNamedSammy = /sammy|sammie/i.test(String(person.name || ""));
       const demoShortStaff = isDemo && sampleIndex === 5;
-      const allowedShiftIds = migrateReferencePattern ? (isNamedSammy || demoShortStaff ? ["kc1116"] : ["kc11", "kc12"]) : Array.isArray(person.allowedShiftIds) ? person.allowedShiftIds.slice() : null;
+      const allowedShiftIds = migrateReferencePattern ? (demoShortStaff ? ["kc1116"] : ["kc11", "kc12"]) : Array.isArray(person.allowedShiftIds) ? person.allowedShiftIds.slice() : null;
       const savedPreferred = person.preferredShiftId || "";
-      const preferredShiftId = savedPreferred && Array.isArray(allowedShiftIds) && !allowedShiftIds.includes(savedPreferred) ? (isNamedSammy || demoShortStaff ? "kc1116" : "") : savedPreferred;
+      const preferredShiftId = savedPreferred && Array.isArray(allowedShiftIds) && !allowedShiftIds.includes(savedPreferred) ? (demoShortStaff ? "kc1116" : "") : savedPreferred;
       const avoidShiftId = person.avoidShiftId && Array.isArray(allowedShiftIds) && !allowedShiftIds.includes(person.avoidShiftId) ? "" : person.avoidShiftId || "";
       if (migrateMonthDefault && isDemo && !has(availabilityByMonth, month) && Array.isArray(availabilityByMonth[savedMonth])) {
         const weekdays = new Set(availabilityByMonth[savedMonth].map((date) => parseDate(date).getDay()));
