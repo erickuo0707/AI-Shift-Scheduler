@@ -86,7 +86,7 @@ export function StaffDialog({ open, person, state, onClose, onSave, toast }) {
       <form onSubmit={submit} className="p-6 sm:p-9">
         <div className="mb-7 flex items-start justify-between">
           <div>
-            <h2 id="dialogTitle" className="m-0 text-[1.6rem] font-black text-white">{person ? "編輯人員" : "新增人員"}</h2>
+            <h2 id="dialogTitle" className="m-0 text-[1.6rem] font-black text-ink">{person ? "編輯人員" : "新增人員"}</h2>
             <p className="mt-1 text-[0.9rem] text-dim">可以隨時修改或刪除人員資料。</p>
           </div>
           <button type="button" className="btn btn-sm" onClick={onClose} aria-label="關閉"><IconX /></button>
@@ -98,10 +98,10 @@ export function StaffDialog({ open, person, state, onClose, onSave, toast }) {
           </label>
           <div className="flex flex-col gap-2">
             <span className="label">人員類型</span>
-            <div className="grid grid-cols-2 gap-1 rounded-2xl border border-white/10 bg-white/[0.04] p-1">
+            <div className="grid grid-cols-2 gap-1 rounded-2xl border border-line bg-[#f7f8fa] p-1">
               {["PT", "正職"].map((t) => (
                 <button key={t} type="button" onClick={() => changeType(t)}
-                  className={"rounded-xl py-2 text-[1rem] font-extrabold transition " + (form.type === t ? "bg-violet-500 text-white" : "text-dim hover:text-white")}>
+                  className={"rounded-xl py-2 text-[1rem] font-extrabold transition " + (form.type === t ? "bg-ink text-white" : "text-dim hover:text-ink")}>
                   {t}
                 </button>
               ))}
@@ -110,9 +110,9 @@ export function StaffDialog({ open, person, state, onClose, onSave, toast }) {
           <div className="flex flex-col gap-2">
             <span className="label">資深・可帶班</span>
             <button type="button" aria-pressed={form.lead} onClick={() => set({ lead: !form.lead })}
-              className={"flex items-center gap-3 rounded-2xl border-[1.5px] px-4 py-2.5 text-left transition " + (form.lead ? "border-amber-300/60 bg-amber-300/10" : "border-white/10 bg-white/[0.03] hover:border-white/25")}>
-              <span className={"relative h-6 w-11 rounded-full transition " + (form.lead ? "bg-amber-400" : "bg-white/15")}><span className={"absolute top-0.5 size-5 rounded-full bg-white shadow transition-all " + (form.lead ? "left-[22px]" : "left-0.5")} /></span>
-              <span className="text-[0.9rem] font-bold text-[#d8dcf6]">{form.lead ? "★ 帶班人員" : "一般人員"}</span>
+              className={"flex items-center gap-3 rounded-2xl border-[1.5px] px-4 py-2.5 text-left transition " + (form.lead ? "border-amber-400 bg-amber-50" : "border-line bg-[#f7f8fa] hover:border-[#c9ced8]")}>
+              <span className={"relative h-6 w-11 rounded-full transition " + (form.lead ? "bg-amber-400" : "bg-[#d5d9e0]")}><span className={"absolute top-0.5 size-5 rounded-full bg-white shadow transition-all " + (form.lead ? "left-[22px]" : "left-0.5")} /></span>
+              <span className="text-[0.9rem] font-bold text-[#3d4452]">{form.lead ? "★ 帶班人員" : "一般人員"}</span>
             </button>
             <span className="text-[0.8rem] text-dim">每天盡量至少排一位帶班的人；帶班的人同天上班或同天休都可以。</span>
           </div>
@@ -130,8 +130,8 @@ export function StaffDialog({ open, person, state, onClose, onSave, toast }) {
                 return (
                   <button key={date} type="button" onClick={() => toggleDate(date)} aria-pressed={isFull ? !!st : on} aria-label={date + " " + (label || "未勾選")}
                     className={"date-cell flex flex-col items-center justify-center gap-0.5 px-1 py-1.5 " + (on ? "on" : st === "must" ? "must" : st === "prefer" ? "prefer" : "")}>
-                    <strong className={"text-[1.05rem] leading-none " + (redSet.has(date) ? "text-rose-300" : "text-white")}>{n}</strong>
-                    <small className={"text-[0.66rem] font-extrabold leading-none " + (st === "must" ? "text-rose-300" : st === "prefer" ? "text-amber-300" : on ? "text-violet-200" : "text-dim")}>{label || "—"}</small>
+                    <strong className={"text-[1.05rem] leading-none " + (redSet.has(date) ? "text-rose-600" : "text-ink")}>{n}</strong>
+                    <small className={"text-[0.66rem] font-extrabold leading-none " + (st === "must" ? "text-rose-600" : st === "prefer" ? "text-amber-600" : on ? "text-sky-700" : "text-dim")}>{label || "—"}</small>
                   </button>
                 );
               })}
@@ -153,10 +153,10 @@ export function StaffDialog({ open, person, state, onClose, onSave, toast }) {
                 return (
                   <button key={shift.id} type="button" aria-pressed={on}
                     onClick={() => { const a = new Set(form.allowed); if (a.has(shift.id)) a.delete(shift.id); else a.add(shift.id); set({ allowed: a }); }}
-                    className={"flex items-center gap-3 rounded-xl border-[1.5px] px-4 py-2.5 text-left transition " + (on ? "border-violet-400/60 bg-violet-500/15" : "border-white/10 bg-white/[0.03] opacity-70 hover:opacity-100")}>
-                    <span className={"grid size-5 place-items-center rounded-md border text-[0.75rem] " + (on ? "border-violet-300 bg-violet-500 text-white" : "border-white/25")}>{on ? "✓" : ""}</span>
+                    className={"flex items-center gap-3 rounded-xl border-[1.5px] px-4 py-2.5 text-left transition " + (on ? "border-sky-500/60 bg-sky-50" : "border-line bg-[#f7f8fa] opacity-70 hover:opacity-100")}>
+                    <span className={"grid size-5 place-items-center rounded-md border text-[0.75rem] " + (on ? "border-ink bg-ink text-white" : "border-line")}>{on ? "✓" : ""}</span>
                     <span className="flex flex-col leading-tight">
-                      <strong className="text-[1rem] text-white">{shift.name}</strong>
+                      <strong className="text-[1rem] text-ink">{shift.name}</strong>
                       <small className="text-[0.78rem] text-dim">{shift.start}–{shift.end} · {hours} 小時</small>
                     </span>
                   </button>

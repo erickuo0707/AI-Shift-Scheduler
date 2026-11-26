@@ -1,5 +1,5 @@
 import { Panel } from "../Panel";
-import { IconCheck, IconDownload, IconPrinter, IconSave } from "../Icons";
+import { IconDownload, IconPrinter, IconSave } from "../Icons";
 import { addDays, coveredSlotIds, formatDateLabel, isoDate, monthDates, parseDate, personAvailabilityDates, personMustOffDates, personPreferredOffDates, weekKey } from "../../lib/scheduler";
 
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -57,7 +57,7 @@ export function ResultPanel({ state, onCsv, onBackup }) {
   return (
     <Panel
       id="resultSection"
-      icon={<IconCheck />}
+      eyebrow="Step 03 · 班表"
       title="排班建議"
       sub={formatDateLabel(dates[0]) + " 至 " + formatDateLabel(dates[dates.length - 1]) + " · 必要班位 " + required.length + " 個" + (optional.length ? "，選填 " + optional.length + " 個（已排 " + optional.filter((s) => covered.has(s.id)).length + "）" : "")}
       actions={<>
@@ -66,7 +66,7 @@ export function ResultPanel({ state, onCsv, onBackup }) {
         <button className="btn btn-primary" onClick={() => window.print()}><IconPrinter />列印班表</button>
       </>}
     >
-      <div className={"mb-5 rounded-[18px] border px-6 py-5 text-[1rem] font-semibold " + (unfilled ? "border-amber-400/30 bg-amber-400/10 text-amber-200" : "border-emerald-400/30 bg-emerald-400/10 text-emerald-200")}>
+      <div className={"mb-5 rounded-[18px] border px-6 py-5 text-[1rem] font-semibold " + (unfilled ? "border-amber-200 bg-amber-50 text-amber-700" : "border-emerald-200 bg-emerald-50 text-emerald-800")}>
         {unfilled
           ? `必要班位排出 ${coveredReq} / ${required.length} 個，還有 ${unfilled} 個缺額。請查看原因，調整人員可上班日期、班別需求或休息條件後重新生成。`
           : `所有必要班位都已安排${extendedCount ? `（其中 ${extendedCount} 天因缺人延長為全天班）` : ""}。系統遵守可上班日期、正職月休與一例一休、休息間隔與連續工作日上限。`}
@@ -75,19 +75,19 @@ export function ResultPanel({ state, onCsv, onBackup }) {
 
       <div className="my-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         {kpis.map(([label, value, unit, good]) => (
-          <div key={label} className="kpi-card rounded-xl border border-white/[0.08] bg-white/[0.03] px-6 py-5">
-            <span className="block text-[0.9rem] font-bold text-dim">{label}</span>
-            <strong className={"mt-1 block text-[2.3rem] font-black leading-tight tracking-tight " + (good ? "text-white" : "text-amber-300")}>
+          <div key={label} className="kpi-card rounded-2xl border border-line bg-white px-6 py-5">
+            <span className="eyebrow block">{label}</span>
+            <strong className={"mt-2 block text-[2.5rem] font-extrabold leading-none tracking-[-0.03em] " + (good ? "text-ink" : "text-amber-600")}>
               {value}{unit}
             </strong>
           </div>
         ))}
       </div>
 
-      <p className="mb-3.5 text-[0.88rem] text-dim">紅色日期為紅字（週末／國定假日）。PT 的 X 代表未勾選可上班；正職休假標「例假日／休息日」，X 是自己畫的必休、△ 是希望休。<span className="text-sky-300">藍色</span>是缺人時延長的全天班。</p>
+      <p className="mb-3.5 text-[0.88rem] text-dim">紅色日期為紅字（週末／國定假日）。PT 的 X 代表未勾選可上班；正職休假標「例假日／休息日」，X 是自己畫的必休、△ 是希望休。<span className="text-sky-600">藍色</span>是缺人時延長的全天班。</p>
 
       <div className="grid gap-5">
-        <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4 text-center text-[1.4rem] font-black tracking-wide text-white">
+        <div className="rounded-xl border border-line bg-[#f7f8fa] p-4 text-center text-[1.4rem] font-black tracking-wide text-ink">
           {y} 年 {m} 月排班表
         </div>
         {weeks.map((weekDates) => (
@@ -159,7 +159,7 @@ export function ResultPanel({ state, onCsv, onBackup }) {
       </div>
 
       <div className="mt-8 break-inside-avoid">
-        <h3 className="mb-3.5 text-[1.25rem] font-black text-white">個人工時概覽</h3>
+        <h3 className="mb-3.5 text-[1.25rem] font-black text-ink">個人工時概覽</h3>
         <div className="table-wrap">
           <table className="data-table">
             <thead><tr><th>人員</th><th>已排工時</th><th>班數</th><th>提醒</th></tr></thead>
@@ -182,12 +182,12 @@ export function ResultPanel({ state, onCsv, onBackup }) {
                 const pct = max ? Math.min(100, (Math.max(...byWeek.values(), 0) / max) * 100) : 0;
                 return (
                   <tr key={person.id}>
-                    <td><span className="font-extrabold text-white">{person.name}</span> <span className={person.type === "正職" ? "tag" : "tag tag-cyan"}>{person.type}</span></td>
+                    <td><span className="font-extrabold text-ink">{person.name}</span> <span className={person.type === "正職" ? "tag" : "tag tag-cyan"}>{person.type}</span></td>
                     <td>
                       <div className="flex items-center gap-3">
                         <span className="w-24 whitespace-nowrap">{hours.toFixed(1)} 小時</span>
-                        <div className="no-print h-2 w-32 overflow-hidden rounded-full bg-white/10" title="單週最高工時／上限">
-                          <div className="h-full rounded-full bg-violet-400" style={{ width: pct + "%" }} />
+                        <div className="no-print h-2 w-32 overflow-hidden rounded-full bg-[#eef0f3]" title="單週最高工時／上限">
+                          <div className="h-full rounded-full bg-sky-500" style={{ width: pct + "%" }} />
                         </div>
                       </div>
                     </td>

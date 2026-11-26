@@ -1,131 +1,134 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: Inter, "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif;
-  --color-ink: #e6e8f2;
-  --color-dim: #9aa0c3;
-  --color-line: rgb(255 255 255 / 0.09);
-  --color-brand: #8b7cff;
-  --color-brand-2: #22d3ee;
-  --color-brand-3: #f472b6;
+  --font-sans: "Inter Tight", Inter, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --color-ink: #0c111b;
+  --color-dim: #5d6576;
+  --color-line: #e4e7ec;
+  --color-paper: #f6f6f3;
 }
 
-
-html { font-size: 18px; scroll-behavior: smooth; color-scheme: dark; }
+html { font-size: 18px; scroll-behavior: smooth; color-scheme: light; }
 body {
   margin: 0;
-  background: #0b0d17;
+  background: var(--color-paper);
+  background-image: radial-gradient(rgb(12 17 27 / 0.05) 1px, transparent 1px);
+  background-size: 22px 22px;
   color: var(--color-ink);
   font-family: var(--font-sans);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
 }
-::selection { background: rgb(139 124 255 / 0.4); }
+::selection { background: rgb(45 212 191 / 0.3); }
+
+/* 青→藍漸層字（參考 scrolltide 的 tide.） */
+.tide-text {
+  background: linear-gradient(90deg, #2dd4bf, #3b82f6);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+/* 等寬大寫小標 */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.72rem; font-weight: 500;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--color-dim);
+}
 
 /* 表單元件 */
 .input {
   width: 100%; min-width: 0;
-  border: 1.5px solid rgb(255 255 255 / 0.1);
+  border: 1.5px solid var(--color-line);
   border-radius: 14px;
   padding: 0.7rem 0.9rem;
-  background: rgb(255 255 255 / 0.04);
+  background: #fff;
   color: var(--color-ink);
   font-size: 1rem;
   outline: none;
-  transition: border-color .15s, box-shadow .15s, background .15s;
+  transition: border-color .15s, box-shadow .15s;
 }
-.input:hover { border-color: rgb(255 255 255 / 0.2); }
-.input:focus { border-color: var(--color-brand); background: rgb(139 124 255 / 0.08); box-shadow: 0 0 0 4px rgb(139 124 255 / 0.2); }
-.input::-webkit-calendar-picker-indicator { filter: invert(0.8); cursor: pointer; }
-select.input option { background: #12142a; }
-input[type="checkbox"] { accent-color: var(--color-brand); width: 1.1rem; height: 1.1rem; }
-.label { font-size: 0.9rem; font-weight: 800; color: #c4c8ec; }
+.input:hover { border-color: #c9ced8; }
+.input:focus { border-color: #3b82f6; box-shadow: 0 0 0 4px rgb(59 130 246 / 0.15); }
+input[type="checkbox"] { accent-color: var(--color-ink); width: 1.1rem; height: 1.1rem; }
+.label { font-size: 0.9rem; font-weight: 700; color: #2b3240; }
 
-/* 按鈕 */
+/* 按鈕：藥丸形 */
 .btn {
-  display: inline-flex; align-items: center; gap: .4rem; white-space: nowrap;
-  border: 1.5px solid rgb(255 255 255 / 0.12);
-  background: rgb(255 255 255 / 0.04);
+  display: inline-flex; align-items: center; gap: .45rem; white-space: nowrap;
+  border: 1.5px solid var(--color-line);
+  background: #fff;
   color: var(--color-ink);
-  border-radius: 14px; padding: .6rem 1.05rem;
-  font-size: .9rem; font-weight: 800; cursor: pointer;
-  transition: all .18s;
+  border-radius: 999px; padding: .6rem 1.15rem;
+  font-size: .9rem; font-weight: 700; cursor: pointer; text-decoration: none;
+  transition: background .15s, border-color .15s, transform .15s;
 }
-.btn:hover { border-color: rgb(139 124 255 / 0.6); background: rgb(139 124 255 / 0.12); }
-.btn-danger { color: #fb7185; border-color: rgb(251 113 133 / 0.3); }
-.btn-danger:hover { background: rgb(251 113 133 / 0.12); border-color: rgb(251 113 133 / 0.6); }
-.btn-sm { padding: .4rem .75rem; font-size: .85rem; border-radius: 11px; }
-.btn-primary {
-  border-color: transparent; color: #fff;
-  background: #7c6cff;
-}
-.btn-primary:hover { background: #6d5cf0; border-color: transparent; }
+.btn:hover { border-color: #c9ced8; background: #f3f4f6; }
+.btn:active { transform: translateY(1px); }
+.btn-danger { color: #be123c; border-color: #fbd0da; }
+.btn-danger:hover { background: #fff1f3; border-color: #f9a8bb; }
+.btn-sm { padding: .38rem .8rem; font-size: .85rem; }
+.btn-primary { border-color: var(--color-ink); background: var(--color-ink); color: #fff; }
+.btn-primary:hover { background: #222a38; border-color: #222a38; }
 
 /* 表格 */
-.table-wrap { overflow: auto; border: 1px solid var(--color-line); border-radius: 18px; background: rgb(255 255 255 / 0.02); }
+.table-wrap { overflow: auto; border: 1px solid var(--color-line); border-radius: 18px; background: #fff; }
 .data-table { width: 100%; border-collapse: collapse; min-width: 980px; }
-.data-table th { background: rgb(255 255 255 / 0.04); text-align: left; color: #aeb3d9; font-size: .85rem; letter-spacing: .05em; font-weight: 850; padding: .85rem 1rem; white-space: nowrap; }
+.data-table th { background: #f7f8fa; text-align: left; font-family: var(--font-mono); color: var(--color-dim); font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; font-weight: 500; padding: .85rem 1rem; white-space: nowrap; }
 .data-table td { padding: .9rem 1rem; border-top: 1px solid var(--color-line); font-size: .95rem; vertical-align: middle; }
 .data-table tbody tr { transition: background .15s; }
-.data-table tbody tr:hover td { background: rgb(139 124 255 / 0.05); }
-.tag { display: inline-flex; white-space: nowrap; background: rgb(139 124 255 / 0.15); color: #c9c2ff; padding: .15rem .65rem; border-radius: 999px; font-size: .78rem; font-weight: 800; margin: 2px 4px 2px 0; border: 1px solid rgb(139 124 255 / 0.3); }
-.tag-soft { background: rgb(255 255 255 / 0.05); color: var(--color-dim); border-color: rgb(255 255 255 / 0.1); }
-.tag-cyan { background: rgb(34 211 238 / 0.12); color: #67e8f9; border-color: rgb(34 211 238 / 0.3); }
+.data-table tbody tr:hover td { background: #fafbfc; }
+.tag { display: inline-flex; white-space: nowrap; background: #f1f3f6; color: #2b3240; padding: .12rem .62rem; border-radius: 999px; font-size: .78rem; font-weight: 700; margin: 2px 4px 2px 0; border: 1px solid var(--color-line); }
+.tag-soft { background: #fff; color: var(--color-dim); }
+.tag-cyan { background: #ecfeff; color: #0e7490; border-color: #a5f3fc; }
 
 /* 週班表 */
 .rota table { width: 100%; min-width: 1180px; table-layout: fixed; border-collapse: collapse; }
 .rota th, .rota td { text-align: center; vertical-align: middle; padding: .6rem .35rem; font-size: .85rem; border-top: 1px solid var(--color-line); }
 .rota th:first-child, .rota td:first-child { text-align: left; width: 160px; padding-left: 1rem; }
-.rota thead th { background: rgb(255 255 255 / 0.04); color: #aeb3d9; font-weight: 800; border-top: 0; }
-.rota .date-row th { background: rgb(139 124 255 / 0.12); color: #d6d0ff; font-size: .9rem; }
-.rota .outside { background: rgb(0 0 0 / 0.25); color: #4b4f6e; }
-.rota .staff-name { font-weight: 850; font-size: .9rem; color: var(--color-ink); }
-.rota .off { color: #5d6285; font-weight: 850; }
-.rota .prefer { color: #fbbf24; font-weight: 850; }
-.rota .rest { color: #7c82a8; }
-.rota .work {
-  display: inline-grid; white-space: nowrap; padding: .25rem .5rem; border-radius: 9px;
-  background: rgb(124 108 255 / 0.18);
-  border: 1px solid rgb(139 124 255 / 0.35); color: #e4e0ff; font-size: .8rem; font-weight: 800;
-}
-.rota .work small { font-size: .68rem; font-weight: 650; color: #c7c2f5; }
-.rota .work.extended { background: rgb(56 189 248 / 0.2); border-color: rgb(56 189 248 / 0.6); color: #bae6fd; }
-.rota .work.extended small { color: #e0f2fe; }
-.rota .leave { display: inline-block; font-size: .78rem; font-weight: 800; color: #fda4af; }
-.rota .leave b { color: #fb7185; }
-.rota .date-row th.red { color: #fda4af; background: rgb(244 63 94 / 0.14); }
-.rota .work.requested { background: rgb(251 191 36 / 0.15); border-color: rgb(251 191 36 / 0.45); color: #fde68a; }
-.rota .work em { font-size: .68rem; font-style: normal; font-weight: 850; }
-.rota .shortage-row th, .rota .shortage-row td { background: rgb(251 113 133 / 0.06); }
-.rota .vacancy { display: block; font-weight: 800; color: #fb7185; }
+.rota thead th { background: #f7f8fa; font-family: var(--font-mono); color: var(--color-dim); font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; font-weight: 500; border-top: 0; }
+.rota .date-row th { background: #fff; color: var(--color-ink); font-family: var(--font-sans); font-size: .95rem; font-weight: 800; letter-spacing: 0; text-transform: none; }
+.rota .date-row th.red { color: #e11d48; }
+.rota .outside { background: #f7f8fa; color: #b6bcc8; }
+.rota .staff-name { font-weight: 800; font-size: .92rem; color: var(--color-ink); }
+.rota .off { color: #a2a9b6; font-weight: 700; }
+.rota .prefer { color: #d97706; font-weight: 800; }
+.rota .rest { color: #a2a9b6; }
+.rota .work { display: inline-grid; white-space: nowrap; padding: .28rem .55rem; border-radius: 10px; background: #f1f5f9; border: 1px solid #e2e8f0; color: var(--color-ink); font-size: .8rem; font-weight: 800; }
+.rota .work small { font-family: var(--font-mono); font-size: .66rem; font-weight: 500; color: var(--color-dim); }
+.rota .work.extended { background: #eff6ff; border-color: #93c5fd; color: #1d4ed8; }
+.rota .work.extended small { color: #2563eb; }
+.rota .work.requested { background: #fffbeb; border-color: #fcd34d; color: #92400e; }
+.rota .work em { font-size: .68rem; font-style: normal; font-weight: 800; }
+.rota .leave { display: inline-block; font-size: .78rem; font-weight: 700; color: #e11d48; }
+.rota .leave b { color: #be123c; }
+.rota .shortage-row th, .rota .shortage-row td { background: #fff7f8; }
+.rota .vacancy { display: block; font-weight: 800; color: #e11d48; }
 .rota .reason { display: block; font-size: .68rem; color: var(--color-dim); }
 
 /* 日期選擇 */
-.date-cell { min-height: 66px; border: 1.5px solid var(--color-line); border-radius: 13px; background: rgb(255 255 255 / 0.03); cursor: pointer; transition: .15s; }
-.date-cell:hover { border-color: rgb(139 124 255 / 0.5); }
-.date-cell.on { background: rgb(139 124 255 / 0.18); border-color: rgb(139 124 255 / 0.7); }
-.date-cell.prefer { background: rgb(251 191 36 / 0.12); border-color: rgb(251 191 36 / 0.55); }
-.date-cell.must { background: rgb(251 113 133 / 0.14); border-color: rgb(251 113 133 / 0.6); }
+.date-cell { min-height: 66px; border: 1.5px solid var(--color-line); border-radius: 13px; background: #fff; cursor: pointer; transition: .15s; }
+.date-cell:hover { border-color: #c9ced8; }
+.date-cell.on { background: #ecfeff; border-color: #22d3ee; }
+.date-cell.prefer { background: #fffbeb; border-color: #fbbf24; }
+.date-cell.must { background: #fff1f3; border-color: #fb7185; }
 
-/* 列印：強制淺色 */
+/* 列印 */
 @media print {
   @page { size: A4 landscape; margin: 8mm; }
-  html { font-size: 12px; color-scheme: light; }
+  html { font-size: 12px; }
   body { background: #fff !important; color: #111 !important; }
   .no-print { display: none !important; }
   body * { opacity: 1 !important; filter: none !important; transform: none !important; backdrop-filter: none !important; }
-  .print-plain { background: #fff !important; border: 0 !important; box-shadow: none !important; padding: 0 6px !important; overflow: visible !important; color: #111 !important; }
-  .print-plain * { color: #111 !important; text-shadow: none !important; }
-  .table-wrap { overflow: visible; border-color: #bbb; background: #fff; }
+  .print-plain { background: #fff !important; border: 0 !important; box-shadow: none !important; padding: 0 6px !important; overflow: visible !important; }
+  .table-wrap { overflow: visible; border-color: #bbb; }
   .rota { break-inside: avoid; page-break-inside: avoid; }
   .rota table { min-width: 0; }
-  .rota th, .rota td { font-size: 8px; padding: 4px 2px; border-color: #ccc; background: #fff !important; }
+  .rota th, .rota td { font-size: 8px; padding: 4px 2px; border-color: #ccc; }
   .rota th:first-child, .rota td:first-child { width: 80px; padding-left: 4px; }
-  .rota .work { font-size: 8px; padding: 2px 3px; background: #eef !important; border: 0; }
+  .rota .work { font-size: 8px; padding: 2px 3px; }
   .rota .work small, .rota .work em, .rota .reason { font-size: 7px; }
-  .rota .work.extended { background: #dbeafe !important; }
   .rota .leave { font-size: 8px; }
   .data-table { min-width: 0; }
-  .data-table th, .data-table td { font-size: 10px; padding: 5px 8px; background: #fff !important; border-color: #ccc; }
-  .kpi-card { padding: 6px !important; border: 1px solid #bbb !important; background: #fff !important; }
+  .data-table th, .data-table td { font-size: 10px; padding: 5px 8px; border-color: #ccc; }
+  .kpi-card { padding: 6px !important; border: 1px solid #bbb !important; }
 }

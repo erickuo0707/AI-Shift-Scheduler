@@ -16,10 +16,10 @@ export function Dialog({ open, onClose, children, labelledBy }) {
           className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-3 sm:items-center sm:p-6"
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
         >
-          <div className="fixed inset-0 bg-black/60" onClick={onClose} />
+          <div className="fixed inset-0 bg-ink/40" onClick={onClose} />
           <motion.div
             role="dialog" aria-modal="true" aria-labelledby={labelledBy}
-            className="relative my-auto w-full max-w-[820px] overflow-hidden rounded-2xl border border-white/10 bg-[#151826] shadow-2xl"
+            className="relative my-auto w-full max-w-[820px] overflow-hidden rounded-[28px] border border-line bg-white shadow-[0_40px_100px_-30px_rgba(12,17,27,0.45)]"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 8 }}

@@ -1,5 +1,5 @@
 import { Panel } from "../Panel";
-import { IconPlus, IconRefresh, IconUsers } from "../Icons";
+import { IconPlus, IconRefresh } from "../Icons";
 import { personAvailabilityDates, personMustOffDates, personPreferredOffDates } from "../../lib/scheduler";
 
 export function StaffPanel({ state, onAdd, onEdit, onDelete, onReset }) {
@@ -10,7 +10,8 @@ export function StaffPanel({ state, onAdd, onEdit, onDelete, onReset }) {
   return (
     <Panel
       className="no-print"
-      icon={<IconUsers />}
+      id="staff"
+      eyebrow="Step 01 · 團隊"
       title="人員與個人需求"
       sub="設定指定月份可上班日期、每週最高工時與班別偏好，不需要填寫健康或敏感資訊。"
       actions={<>
@@ -43,9 +44,9 @@ export function StaffPanel({ state, onAdd, onEdit, onDelete, onReset }) {
               ].filter(Boolean);
               return (
                 <tr key={p.id}>
-                  <td><span className="whitespace-nowrap text-[1rem] font-extrabold text-white">{p.name}</span>{p.lead && <span className="tag ml-2 border-amber-300/40 bg-amber-300/15 text-amber-200">★ 帶班</span>}</td>
+                  <td><span className="whitespace-nowrap text-[1rem] font-extrabold text-ink">{p.name}</span>{p.lead && <span className="tag ml-2 border-amber-300 bg-amber-50 text-amber-700">★ 帶班</span>}</td>
                   <td><span className={p.type === "正職" ? "tag" : "tag tag-cyan"}>{p.type}</span></td>
-                  <td className="text-[#c9cdf0]">{summary}</td>
+                  <td className="text-[#3d4452]">{summary}</td>
                   <td className="whitespace-nowrap">{p.maxHours} 小時／週</td>
                   <td>{prefs.length ? prefs : <span className="text-[0.85rem] text-dim">未設定</span>}</td>
                   <td>

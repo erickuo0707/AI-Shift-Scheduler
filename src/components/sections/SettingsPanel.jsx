@@ -1,16 +1,16 @@
 import { Panel } from "../Panel";
 import { MonthPicker } from "../MonthPicker";
 import { CommitInput } from "../CommitInput";
-import { IconCalendar, IconSparkles } from "../Icons";
+import { IconSparkles } from "../Icons";
 import { DAY_NAMES, defaultHolidays, isWeekend, monthDates, monthHolidays, parseDate } from "../../lib/scheduler";
 
 function Toggle({ on, onChange, label }) {
   return (
     <button type="button" aria-pressed={on} onClick={() => onChange(!on)} className="flex items-center gap-3 text-left">
-      <span className={"relative h-6 w-11 shrink-0 rounded-full transition " + (on ? "bg-violet-500" : "bg-white/15")}>
+      <span className={"relative h-6 w-11 shrink-0 rounded-full transition " + (on ? "bg-ink" : "bg-[#d5d9e0]")}>
         <span className={"absolute top-0.5 size-5 rounded-full bg-white shadow transition-all " + (on ? "left-[22px]" : "left-0.5")} />
       </span>
-      <span className="text-[0.92rem] font-bold text-[#d8dcf6]">{label}</span>
+      <span className="text-[0.92rem] font-bold text-[#3d4452]">{label}</span>
     </button>
   );
 }
@@ -31,7 +31,8 @@ export function SettingsPanel({ state, onSetting, onGenerate, busy, monthsWithDa
   return (
     <Panel
       className="no-print"
-      icon={<IconCalendar />}
+      id="rules"
+      eyebrow="Step 02 · 規則"
       title="排班期間與休息規則"
       sub="硬性規則不會被偏好分數覆蓋；條件不足時會保留缺額並說明原因。"
     >
@@ -51,7 +52,7 @@ export function SettingsPanel({ state, onSetting, onGenerate, busy, monthsWithDa
       </div>
 
       <div className="mt-7 grid gap-6 lg:grid-cols-[1.2fr_1fr]">
-        <div className="rounded-xl border border-white/[0.08] bg-white/[0.025] p-5">
+        <div className="rounded-xl border border-line bg-[#f7f8fa] p-5">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <span className="label">本月紅字（國定假日）</span>
             {isCustom && <button className="btn btn-sm" onClick={() => onSetting("holidays", null)}>還原預設</button>}
@@ -65,18 +66,18 @@ export function SettingsPanel({ state, onSetting, onGenerate, busy, monthsWithDa
               return (
                 <button key={d} type="button" disabled={weekend} onClick={() => toggleHoliday(d)}
                   title={weekend ? "週末固定為紅字" : hol ? "點一下取消國定假日" : "點一下設為國定假日"}
-                  className={"rounded-lg py-1.5 text-[0.9rem] font-extrabold transition " + (weekend ? "cursor-default bg-rose-500/10 text-rose-300/80" : hol ? "bg-rose-500/30 text-rose-100 ring-1 ring-rose-300/60" : "bg-white/[0.04] text-[#c9cdf0] hover:bg-white/10")}>
+                  className={"rounded-lg py-1.5 text-[0.9rem] font-extrabold transition " + (weekend ? "cursor-default bg-rose-50 text-rose-500" : hol ? "bg-rose-100 text-rose-800 ring-1 ring-rose-400" : "bg-[#f7f8fa] text-[#3d4452] hover:bg-[#eef0f3]")}>
                   {Number(d.slice(-2))}
                 </button>
               );
             })}
           </div>
           <p className="mt-3 text-[0.85rem] leading-relaxed text-dim">
-            本月紅字 <b className="text-rose-200">{weekendCount + holidayCount} 天</b>（週末 {weekendCount}＋國定假日 {holidayCount}）→ 正職本月可休 {weekendCount + holidayCount} 天，休哪幾天不限星期幾。
+            本月紅字 <b className="text-rose-700">{weekendCount + holidayCount} 天</b>（週末 {weekendCount}＋國定假日 {holidayCount}）→ 正職本月可休 {weekendCount + holidayCount} 天，休哪幾天不限星期幾。
             {!isCustom && defaultHolidays(st.month).length === 0 && " 本月沒有內建國定假日，可直接點日期加上。"}
           </p>
         </div>
-        <div className="flex flex-col gap-4 rounded-xl border border-white/[0.08] bg-white/[0.025] p-5">
+        <div className="flex flex-col gap-4 rounded-xl border border-line bg-[#f7f8fa] p-5">
           <span className="label">排班規則</span>
           <Toggle on={st.extendToFullDay !== false} onChange={(v) => onSetting("extendToFullDay", v)} label="缺人時延長為全天班" />
           <p className="m-0 text-[0.85rem] leading-relaxed text-dim">某個必要班沒人能上時，把當天已排班的人延長成涵蓋兩班的全天班（例如 11:00–21:00，扣休息 1 小時算 9 小時），可超過每週上限。</p>
@@ -84,7 +85,7 @@ export function SettingsPanel({ state, onSetting, onGenerate, busy, monthsWithDa
         </div>
       </div>
 
-      <div className="mt-8 flex flex-wrap items-center justify-between gap-5 border-t border-dashed border-white/10 pt-7">
+      <div className="mt-8 flex flex-wrap items-center justify-between gap-5 border-t border-dashed border-line pt-7">
         <p className="m-0 max-w-[680px] text-[0.88rem] leading-relaxed text-dim">
           排班會先排滿正職，再依帶班、班別偏好與工時平衡安排 PT；必要班優先，選填班有人才排。
         </p>

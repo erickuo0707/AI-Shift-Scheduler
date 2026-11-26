@@ -24,22 +24,22 @@ export function MonthPicker({ value, onChange, monthsWithData = new Set() }) {
   }, [open]);
   const pick = (m) => { onChange(m); setOpen(false); };
   const now = currentMonth();
-  const arrow = "grid size-10 place-items-center rounded-lg text-[1.2rem] text-[#c9cdf0] hover:bg-white/10";
+  const arrow = "grid size-9 place-items-center rounded-full text-[1.2rem] text-[#3d4452] hover:bg-[#eef0f3]";
 
   return (
-    <div ref={ref} className="relative flex items-center gap-1 rounded-xl border border-white/10 bg-white/[0.04] p-1">
+    <div ref={ref} className="relative flex items-center gap-0.5 rounded-full border border-line bg-white p-1 shadow-[0_1px_2px_rgba(12,17,27,0.06)]">
       <button type="button" className={arrow} onClick={() => onChange(shift(value, -1))} aria-label="上個月">‹</button>
       <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-haspopup="dialog"
-        className="min-w-[9.5rem] rounded-lg px-3 py-1.5 text-center text-[1.1rem] font-black text-white hover:bg-white/10 max-sm:min-w-[7.5rem] max-sm:text-[1rem]">
+        className="min-w-[9.5rem] rounded-full px-3 py-1.5 text-center text-[1.05rem] font-extrabold tracking-[-0.01em] text-ink hover:bg-[#eef0f3] max-sm:min-w-[7.5rem] max-sm:text-[0.98rem]">
         {label(value)} <span className="text-[0.8rem] text-dim">▾</span>
       </button>
       <button type="button" className={arrow} onClick={() => onChange(shift(value, 1))} aria-label="下個月">›</button>
 
       {open && (
-        <div role="dialog" aria-label="選擇排班月份" className="absolute left-1/2 top-[calc(100%+8px)] z-50 w-[320px] -translate-x-1/2 rounded-2xl border border-white/10 bg-[#1a1d2c] p-4 shadow-2xl">
+        <div role="dialog" aria-label="選擇排班月份" className="absolute left-1/2 top-[calc(100%+8px)] z-50 w-[320px] -translate-x-1/2 rounded-2xl border border-line bg-white p-4 shadow-[0_24px_60px_-20px_rgba(12,17,27,0.35)]">
           <div className="mb-3 flex items-center justify-between">
             <button type="button" className={arrow} onClick={() => setYear((y) => y - 1)} aria-label="上一年">‹</button>
-            <strong className="text-[1.1rem] text-white">{year} 年</strong>
+            <strong className="text-[1.1rem] text-ink">{year} 年</strong>
             <button type="button" className={arrow} onClick={() => setYear((y) => y + 1)} aria-label="下一年">›</button>
           </div>
           <div className="grid grid-cols-4 gap-2">
@@ -48,19 +48,19 @@ export function MonthPicker({ value, onChange, monthsWithData = new Set() }) {
               const selected = m === value;
               return (
                 <button key={m} type="button" onClick={() => pick(m)} aria-pressed={selected}
-                  className={"relative rounded-lg py-2.5 text-[1rem] font-bold transition " + (selected ? "bg-violet-500 text-white" : m === now ? "bg-white/[0.06] text-white ring-1 ring-white/25" : "bg-white/[0.03] text-[#c9cdf0] hover:bg-white/10")}>
+                  className={"relative rounded-lg py-2.5 text-[1rem] font-bold transition " + (selected ? "bg-ink text-white" : m === now ? "bg-[#eef0f3] text-ink ring-1 ring-[#c9ced8]" : "bg-[#f7f8fa] text-[#3d4452] hover:bg-[#eef0f3]")}>
                   {i + 1} 月
-                  {monthsWithData.has(m) && <span className={"absolute right-1.5 top-1.5 size-1.5 rounded-full " + (selected ? "bg-white" : "bg-emerald-400")} />}
+                  {monthsWithData.has(m) && <span className={"absolute right-1.5 top-1.5 size-1.5 rounded-full " + (selected ? "bg-white" : "bg-teal-500")} />}
                 </button>
               );
             })}
           </div>
-          <div className="mt-3 flex items-center justify-between gap-2 border-t border-white/10 pt-3">
+          <div className="mt-3 flex items-center justify-between gap-2 border-t border-line pt-3">
             <div className="flex gap-2">
               <button type="button" className="btn btn-sm" onClick={() => pick(now)}>本月</button>
               <button type="button" className="btn btn-sm" onClick={() => pick(nextMonth())}>下個月</button>
             </div>
-            <span className="flex items-center gap-1.5 text-[0.75rem] text-dim"><span className="size-1.5 rounded-full bg-emerald-400" />已有資料</span>
+            <span className="flex items-center gap-1.5 text-[0.75rem] text-dim"><span className="size-1.5 rounded-full bg-teal-500" />已有資料</span>
           </div>
         </div>
       )}

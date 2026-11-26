@@ -1,8 +1,4 @@
 const base = { width: "1em", height: "1em", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" };
-export const IconUsers = () => (<svg {...base}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>);
-export const IconClock = () => (<svg {...base}><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>);
-export const IconCalendar = () => (<svg {...base}><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>);
-export const IconCheck = () => (<svg {...base}><path d="M20 6 9 17l-5-5" /></svg>);
 export const IconSparkles = () => (<svg {...base}><path d="M12 3l1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2z" /><path d="M19 3v4M17 5h4" /></svg>);
 export const IconPlus = () => (<svg {...base}><path d="M12 5v14M5 12h14" /></svg>);
 export const IconX = () => (<svg {...base}><path d="M18 6 6 18M6 6l12 12" /></svg>);
@@ -10,4 +6,3 @@ export const IconDownload = () => (<svg {...base}><path d="M21 15v4a2 2 0 0 1-2 
 export const IconPrinter = () => (<svg {...base}><path d="M6 9V2h12v7" /><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><rect x="6" y="14" width="12" height="8" /></svg>);
 export const IconSave = () => (<svg {...base}><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><path d="M17 21v-8H7v8M7 3v5h8" /></svg>);
 export const IconRefresh = () => (<svg {...base}><path d="M21 12a9 9 0 1 1-3-6.7L21 8" /><path d="M21 3v5h-5" /></svg>);
-export const IconShield = () => (<svg {...base}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>);
