@@ -176,7 +176,8 @@ export function loadState() {
         referencePatternVersion: 3,
         featureVersion: 5,
       },
-      result: null,
+      // 已生成（含手動調整）的班表在同月份時保留
+      result: parsed.result && parsed.result.month === month && Array.isArray(parsed.result.slots) && Array.isArray(parsed.result.assignments) ? parsed.result : null,
     };
   } catch (e) {
     return demoState();
@@ -253,6 +254,22 @@ function respectsRest(slot, otherSlots, minRestHours) {
   return true;
 }
 
+// 每週第一個休假日標「例假日」，其餘標「休息日」
+function labelOff(off) {
+  const labels = {};
+  const seen = new Set();
+  [...off].sort().forEach((d) => { const k = weekKey(d); labels[d] = seen.has(k) ? "休息日" : "例假日"; seen.add(k); });
+  return labels;
+}
+
+// 當天已排的班加起來是否能蓋住某個時段（例如短班 10:30-16 + 晚班 12-21 蓋住早班 11-20）
+function timeCovered(date, startAt, endAt, list) {
+  const ranges = list.filter((a) => a.slot.date === date).map((a) => [a.slot.startAt, a.slot.endAt]).sort((x, y) => x[0] - y[0]);
+  let reach = startAt;
+  for (const [s, e] of ranges) { if (s > reach) break; reach = Math.max(reach, e); if (reach >= endAt) return true; }
+  return reach >= endAt;
+}
+
 // 某班位是否已被排到（全天班延長會同時涵蓋兩個班位）
 export function coveredSlotIds(result) {
   const set = new Set(result.implicitCovered || []);
@@ -307,14 +324,6 @@ export function createEngine(state) {
     }
     return off;
   }
-  // 每週第一個休假日標「例假日」，其餘標「休息日」
-  function labelOff(off) {
-    const labels = {};
-    const seen = new Set();
-    [...off].sort().forEach((d) => { const k = weekKey(d); labels[d] = seen.has(k) ? "休息日" : "例假日"; seen.add(k); });
-    return labels;
-  }
-
   function eligible(person, slot, assignments) {
     if (!canWorkShift(person, slot.shiftId)) return false;
     if (!isAvail(person, slot.date)) return false;
@@ -357,14 +366,6 @@ export function createEngine(state) {
       }
     }
     return score + Math.random() * 1.5;
-  }
-
-  // 當天已排的班加起來是否能蓋住某個時段（例如短班 10:30-16 + 晚班 12-21 蓋住早班 11-20）
-  function timeCovered(date, startAt, endAt, list) {
-    const ranges = list.filter((a) => a.slot.date === date).map((a) => [a.slot.startAt, a.slot.endAt]).sort((x, y) => x[0] - y[0]);
-    let reach = startAt;
-    for (const [s, e] of ranges) { if (s > reach) break; reach = Math.max(reach, e); if (reach >= endAt) return true; }
-    return reach >= endAt;
   }
 
   // 補缺：1) 當天其他班已蓋住就不算缺；2) 把同天的人換到缺的班，讓其他班蓋住原本的班；3) 都不行才延長成全天班（可超過每週上限）
@@ -509,11 +510,92 @@ export function createEngine(state) {
       const worked = workedDays(id);
       offLabels[id] = labelOff(new Set([...dates].filter((d) => off.has(d) || !worked.has(d))));
     });
-    return { result: { slots: best.slots, assignments: best.assignments, implicitCovered: best.implicitCovered, shortages, offLabels, redDates: red, createdAt: new Date().toISOString() } };
+    return { result: { slots: best.slots, assignments: best.assignments, implicitCovered: best.implicitCovered, shortages, offLabels, redDates: red, month, createdAt: new Date().toISOString() } };
   }
   return { createSchedule, shortageReason };
 }
 
+
+// ===== 生成後手動調整 =====
+export const FULL_DAY = "fullday";
+export const OFF = "off";
+
+function shiftSlot(state, date, shiftId) {
+  const sh = state.shifts.find((x) => x.id === shiftId);
+  const t = slotTimes(date, sh.start, sh.end, sh.breakHours);
+  return { date, weekday: parseDate(date).getDay(), optional: !!sh.optional, shiftId, shiftName: sh.name, start: sh.start, end: sh.end, slotNo: 1, ...t };
+}
+// 全天班＝當天必要班最早開始到最晚結束（例如 11:00–21:00，扣休息 1 小時）
+function fullDaySlot(state, date) {
+  const req = state.shifts.filter((x) => !x.optional);
+  const first = req.reduce((a, b) => (timeMinutes(b.start) < timeMinutes(a.start) ? b : a));
+  const last = req.reduce((a, b) => (timeMinutes(b.end) > timeMinutes(a.end) ? b : a));
+  const breakHours = Math.max(...req.map((x) => Number(x.breakHours) || 0));
+  const t = slotTimes(date, first.start, last.end, breakHours);
+  return { date, weekday: parseDate(date).getDay(), optional: false, shiftId: first.id, shiftName: "全天班", start: first.start, end: last.end, slotNo: 1, extended: true, ...t };
+}
+export function manualChoices(state) {
+  const req = state.shifts.filter((x) => !x.optional);
+  const fd = fullDaySlot(state, state.settings.month + "-01");
+  return [
+    ...state.shifts.map((x) => ({ id: x.id, label: x.name, time: x.start + "–" + x.end })),
+    ...(req.length > 1 ? [{ id: FULL_DAY, label: "全天班", time: fd.start + "–" + fd.end }] : []),
+    { id: OFF, label: "休／不排", time: "" },
+  ];
+}
+// 手動改班前的提醒（不阻擋）
+export function manualWarnings(state, personId, date, choice) {
+  if (choice === OFF) return [];
+  const p = state.staff.find((x) => x.id === personId);
+  const month = state.settings.month;
+  const others = state.result.assignments.filter((a) => !(a.employeeId === personId && a.slot.date === date));
+  const w = [];
+  if (p.type === "正職") {
+    if (personMustOffDates(p, month).includes(date)) w.push("這天畫了 X 必休");
+    else if (personPreferredOffDates(p, month).includes(date)) w.push("這天畫了 △ 希望休");
+  } else if (!personAvailabilityDates(p, month).includes(date)) w.push("這天沒勾可上班");
+  const ids = choice === FULL_DAY ? state.shifts.filter((x) => !x.optional).map((x) => x.id) : [choice];
+  if (ids.some((id) => !canWorkShift(p, id))) w.push("不在他的可排班別");
+  const slot = choice === FULL_DAY ? fullDaySlot(state, date) : shiftSlot(state, date, choice);
+  const own = others.filter((a) => a.employeeId === personId).map((a) => a.slot);
+  if (!respectsRest(slot, own, state.settings.minRestHours)) w.push("跟前後天的班間隔不到 " + state.settings.minRestHours + " 小時");
+  const hours = weeklyHours(others, personId, weekKey(date)) + slot.hours;
+  if (hours > Number(p.maxHours) + 0.001) w.push("這週會到 " + hours + " 小時，超過上限 " + p.maxHours);
+  if (maxStreak(own.map((x) => x.date).concat(date)) > state.settings.maxConsecutiveDays) w.push("會連續上班超過 " + state.settings.maxConsecutiveDays + " 天");
+  return w;
+}
+// 套用手動調整，重算缺額、短班開店涵蓋與正職休假標記
+export function applyManualEdit(state, personId, date, choice) {
+  const r = state.result;
+  const assignments = r.assignments.filter((a) => !(a.employeeId === personId && a.slot.date === date));
+  let slots = r.slots.slice();
+  const taken = coveredSlotIds({ assignments });
+  const takeSlot = (shiftId) => {
+    let s = slots.find((x) => x.date === date && x.shiftId === shiftId && !taken.has(x.id));
+    if (!s) { s = { ...shiftSlot(state, date, shiftId), id: date + "|" + shiftId + "|m" + Math.random().toString(36).slice(2, 8), optional: true, extra: true }; slots.push(s); }
+    taken.add(s.id);
+    return s;
+  };
+  if (choice === FULL_DAY) {
+    const parts = state.shifts.filter((x) => !x.optional).map((x) => takeSlot(x.id));
+    assignments.push({ employeeId: personId, manual: true, slot: { ...fullDaySlot(state, date), id: parts[0].id, covers: parts.map((x) => x.id) } });
+  } else if (choice !== OFF) {
+    assignments.push({ employeeId: personId, manual: true, slot: takeSlot(choice) });
+  }
+  const used = coveredSlotIds({ assignments });
+  slots = slots.filter((x) => !x.extra || used.has(x.id));
+  const implicitCovered = slots.filter((x) => !x.optional && !used.has(x.id) && timeCovered(x.date, x.startAt, x.endAt, assignments)).map((x) => x.id);
+  const oldReasons = new Map((r.shortages || []).map((x) => [x.slotId, x.reason]));
+  const shortages = slots.filter((x) => !x.optional && !used.has(x.id) && !implicitCovered.includes(x.id))
+    .map((x) => ({ slotId: x.id, reason: oldReasons.get(x.id) || "手動調整後沒有人上這個班" }));
+  const dates = monthDates(state.settings.month);
+  const offLabels = {};
+  state.staff.filter((p) => p.type === "正職").forEach((p) => {
+    const worked = new Set(assignments.filter((a) => a.employeeId === p.id).map((a) => a.slot.date));
+    offLabels[p.id] = labelOff(new Set(dates.filter((d) => !worked.has(d))));
+  });
+  return { ...r, slots, assignments, implicitCovered, shortages, offLabels, edited: true };
+}
 
 export function downloadFile(name, content, type) {
   const blob = new Blob([content], { type }); const url = URL.createObjectURL(blob);
@@ -527,7 +609,7 @@ export function exportCsv(state) {
     if (assigned && assigned.slot.extended && assigned.slot.id !== slot.id) return; // 全天班只列一次
     const s = assigned ? assigned.slot : slot;
     const implicit = (state.result.implicitCovered || []).includes(slot.id);
-    const status = person ? (s.extended ? "已安排（缺人延長為全天班）" : "已安排") : implicit ? "由當天其他班別涵蓋（如短班開店）" : slot.optional ? "選填班未排" : (state.result.shortages.find((x) => x.slotId === slot.id) || {}).reason || "缺額";
+    const status = person ? (assigned.manual ? "手動調整" : s.extended ? "已安排（缺人延長為全天班）" : "已安排") : implicit ? "由當天其他班別涵蓋（如短班開店）" : slot.optional ? "選填班未排" : (state.result.shortages.find((x) => x.slotId === slot.id) || {}).reason || "缺額";
     lines.push([slot.date, dayLabel(slot.weekday), s.shiftName, s.start, s.end, s.hours, person ? person.name : "", status]);
   });
   const csv = "﻿" + lines.map((row) => row.map((value) => '"' + String(value).replace(/"/g, '""') + '"').join(",")).join("\r\n");

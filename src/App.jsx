@@ -6,13 +6,15 @@ import { StaffPanel } from "./components/sections/StaffPanel";
 import { StaffDialog } from "./components/sections/StaffDialog";
 import { SettingsPanel } from "./components/sections/SettingsPanel";
 import { ResultPanel } from "./components/sections/ResultPanel";
-import { createEngine, demoState, exportBackup, exportCsv, loadState, offRequestLimit, persist, uid } from "./lib/scheduler";
+import { CellEditDialog } from "./components/sections/CellEditDialog";
+import { applyManualEdit, createEngine, demoState, exportBackup, exportCsv, loadState, offRequestLimit, persist, uid } from "./lib/scheduler";
 
 export default function App() {
   const [state, setState] = useState(loadState);
   const [toastMsg, setToastMsg] = useState(null);
   const [dialog, setDialog] = useState({ open: false, personId: "" });
   const [busy, setBusy] = useState(false);
+  const [cell, setCell] = useState(null);
   const stateRef = useRef(state);
   stateRef.current = state;
   const toastTimer = useRef(null);
@@ -25,8 +27,12 @@ export default function App() {
 
   useEffect(() => { if (!persist(state)) toast("瀏覽器無法儲存資料，請匯出備份。"); }, [state, toast]);
 
-  // 修改資料並讓舊的排班結果失效（同原版 invalidateResult）
-  const mutate = (fn) => setState((prev) => { const next = structuredClone(prev); fn(next); next.result = null; return next; });
+  // 修改資料並讓舊的排班結果失效（同原版 invalidateResult）；有手動調整時先確認
+  const mutate = (fn) => {
+    const r = stateRef.current.result;
+    if (r && r.edited && !confirm("這個修改會清除目前的班表（包含你手動調整的部分），確定要繼續嗎？")) return;
+    setState((prev) => { const next = structuredClone(prev); fn(next); next.result = null; return next; });
+  };
 
   const savePerson = (data) => {
     const id = dialog.personId;
@@ -80,7 +86,8 @@ export default function App() {
       const current = stateRef.current;
       const { error, result } = createEngine(current).createSchedule();
       if (error) { setBusy(false); toast(error); return; }
-      setState((prev) => ({ ...prev, result }));
+      const original = JSON.parse(JSON.stringify({ slots: result.slots, assignments: result.assignments, implicitCovered: result.implicitCovered, shortages: result.shortages, offLabels: result.offLabels }));
+      setState((prev) => ({ ...prev, result: { ...result, original } }));
       setBusy(false);
       setTimeout(() => document.getElementById("resultSection")?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
     }, 650);
@@ -91,6 +98,18 @@ export default function App() {
     Object.entries(byMonth || {}).forEach(([m, list]) => { if (Array.isArray(list) && list.length) monthsWithData.add(m); });
   }));
 
+  const applyCellEdit = (choice, warnings) => {
+    const { personId, date } = cell;
+    setState((prev) => ({ ...prev, result: applyManualEdit(prev, personId, date, choice) }));
+    setCell(null);
+    toast(warnings.length ? "已調整（注意：" + warnings.join("、") + "）" : "已調整班表。");
+  };
+  const restoreOriginal = () => {
+    if (!confirm("要還原成系統剛生成的班表嗎？手動調整會被清除。")) return;
+    setState((prev) => ({ ...prev, result: { ...prev.result, ...prev.result.original, edited: false } }));
+    toast("已還原系統排班。");
+  };
+
   const editingPerson = state.staff.find((p) => p.id === dialog.personId) || null;
 
   return (
@@ -100,10 +119,11 @@ export default function App() {
         <Hero />
         <StaffPanel state={state} onAdd={() => setDialog({ open: true, personId: "" })} onEdit={(id) => setDialog({ open: true, personId: id })} onDelete={deletePerson} onReset={resetDemo} />
         <SettingsPanel state={state} onSetting={setSetting} onGenerate={generate} busy={busy} monthsWithData={monthsWithData} />
-        {state.result && <ResultPanel state={state} onCsv={() => exportCsv(state)} onBackup={() => exportBackup(state)} />}
+        {state.result && <ResultPanel state={state} onCsv={() => exportCsv(state)} onBackup={() => exportBackup(state)} onEditCell={(personId, date) => setCell({ personId, date })} onRestore={restoreOriginal} />}
         <div className="no-print p-6 text-center text-[0.85rem] text-dim">ShiftWell · 排班建議由本機規則引擎產生，所有資料保存在目前瀏覽器。</div>
       </main>
       <StaffDialog open={dialog.open} person={editingPerson} state={state} onClose={() => setDialog({ open: false, personId: "" })} onSave={savePerson} toast={toast} />
+      <CellEditDialog state={state} cell={cell} onClose={() => setCell(null)} onApply={applyCellEdit} />
       <Toast message={toastMsg} />
     </>
   );

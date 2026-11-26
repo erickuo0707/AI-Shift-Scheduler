@@ -98,6 +98,12 @@ input[type="checkbox"] { accent-color: var(--color-ink); width: 1.1rem; height: 
 .rota .work.extended { background: #eff6ff; border-color: #93c5fd; color: #1d4ed8; }
 .rota .work.extended small { color: #2563eb; }
 .rota .work.requested { background: #fffbeb; border-color: #fcd34d; color: #92400e; }
+.rota .work.manual { outline: 2px dashed #0c111b; outline-offset: 2px; }
+.rota .cell-btn { display: flex; width: 100%; min-height: 3.6rem; align-items: center; justify-content: center; padding: .45rem .3rem; border: 0; background: transparent; cursor: pointer; border-radius: 10px; font: inherit; color: inherit; transition: background .15s; }
+.rota .cell-btn:hover { background: #f1f5f9; }
+.rota .cell-btn:focus-visible { outline: 2px solid #3b82f6; outline-offset: -2px; }
+.rota .cell-add { color: transparent; font-weight: 700; }
+.rota .cell-btn:hover .cell-add { color: #a2a9b6; }
 .rota .work em { font-size: .68rem; font-style: normal; font-weight: 800; }
 .rota .leave { display: inline-block; font-size: .78rem; font-weight: 700; color: #e11d48; }
 .rota .leave b { color: #be123c; }
@@ -128,6 +134,8 @@ input[type="checkbox"] { accent-color: var(--color-ink); width: 1.1rem; height: 
   .rota .work { font-size: 8px; padding: 2px 3px; }
   .rota .work small, .rota .work em, .rota .reason { font-size: 7px; }
   .rota .leave { font-size: 8px; }
+  .rota .cell-btn { min-height: 0; padding: 0; }
+  .rota .work.manual { outline: 0; }
   .data-table { min-width: 0; }
   .data-table th, .data-table td { font-size: 10px; padding: 5px 8px; border-color: #ccc; }
   .kpi-card { padding: 6px !important; border: 1px solid #bbb !important; }

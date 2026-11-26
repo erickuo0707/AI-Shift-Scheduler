@@ -4,7 +4,7 @@ import { addDays, coveredSlotIds, formatDateLabel, isoDate, monthDates, parseDat
 
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
-export function ResultPanel({ state, onCsv, onBackup }) {
+export function ResultPanel({ state, onCsv, onBackup, onEditCell, onRestore }) {
   const result = state.result;
   const month = state.settings.month;
   const dates = monthDates(month);
@@ -27,7 +27,7 @@ export function ResultPanel({ state, onCsv, onBackup }) {
   result.assignments.forEach((a) => {
     const key = a.employeeId + "|" + a.slot.date;
     if (!assignmentMap.has(key)) assignmentMap.set(key, []);
-    assignmentMap.get(key).push(a.slot);
+    assignmentMap.get(key).push(a.manual ? { ...a.slot, manual: true } : a.slot);
   });
   assignmentMap.forEach((items) => items.sort((a, b) => a.start.localeCompare(b.start)));
   const shortagesByDate = new Map();
@@ -61,6 +61,7 @@ export function ResultPanel({ state, onCsv, onBackup }) {
       title="排班建議"
       sub={formatDateLabel(dates[0]) + " 至 " + formatDateLabel(dates[dates.length - 1]) + " · 必要班位 " + required.length + " 個" + (optional.length ? "，選填 " + optional.length + " 個（已排 " + optional.filter((s) => covered.has(s.id)).length + "）" : "")}
       actions={<>
+        {result.edited && <button className="btn" onClick={onRestore}>還原系統排班</button>}
         <button className="btn" onClick={onCsv}><IconDownload />下載 CSV</button>
         <button className="btn" onClick={onBackup}><IconSave />備份設定</button>
         <button className="btn btn-primary" onClick={() => window.print()}><IconPrinter />列印班表</button>
@@ -84,7 +85,7 @@ export function ResultPanel({ state, onCsv, onBackup }) {
         ))}
       </div>
 
-      <p className="mb-3.5 text-[0.88rem] text-dim">紅色日期為紅字（週末／國定假日）。PT 的 X 代表未勾選可上班；正職休假標「例假日／休息日」，X 是自己畫的必休、△ 是希望休。<span className="text-sky-600">藍色</span>是缺人時延長的全天班。</p>
+      <p className="mb-3.5 text-[0.88rem] text-dim">紅色日期為紅字（週末／國定假日）。PT 的 X 代表未勾選可上班；正職休假標「例假日／休息日」，X 是自己畫的必休、△ 是希望休。<span className="text-sky-600">藍色</span>是全天班。<b className="text-ink">點任一格可以手動改班</b>，虛線框是手動調整過的。</p>
 
       <div className="grid gap-5">
         <div className="rounded-xl border border-line bg-[#f7f8fa] p-4 text-center text-[1.4rem] font-black tracking-wide text-ink">
@@ -110,13 +111,13 @@ export function ResultPanel({ state, onCsv, onBackup }) {
                       <th scope="row" className="staff-name">{person.name}</th>
                       {weekDates.map((date) => {
                         const inside = date.slice(0, 7) === month;
-                        const shifts = assignmentMap.get(person.id + "|" + date) || [];
+                        const shifts = (assignmentMap.get(person.id + "|" + date) || []);
                         let content = null;
                         if (inside && shifts.length) {
                           content = (
                             <div className="grid justify-items-center gap-1">
                               {shifts.map((slot) => (
-                                <span key={slot.id} className={"work" + (slot.extended ? " extended" : preferredOff.has(date) ? " requested" : "")}>
+                                <span key={slot.id} className={"work" + (slot.extended ? " extended" : preferredOff.has(date) ? " requested" : "") + (slot.manual ? " manual" : "")}>
                                   <strong>{slot.shiftName}</strong>
                                   <small>{slot.start}–{slot.end}</small>
                                   {preferredOff.has(date) && <em>△ 希望休</em>}
@@ -130,7 +131,12 @@ export function ResultPanel({ state, onCsv, onBackup }) {
                         else if (inside && preferredOff.has(date)) content = <span className="prefer">△</span>;
                         else if (inside && person.type === "正職") content = <span className="rest">休</span>;
                         else if (inside && !available.has(date)) content = <span className="off">X</span>;
-                        return <td key={date} className={inside ? "" : "outside"}>{content}</td>;
+                        if (!inside) return <td key={date} className="outside" />;
+                        return (
+                          <td key={date} className="p-0">
+                            <button type="button" className="cell-btn" onClick={() => onEditCell(person.id, date)} aria-label={`調整 ${person.name} ${date} 的班`}>{content || <span className="cell-add">＋</span>}</button>
+                          </td>
+                        );
                       })}
                     </tr>
                   );
