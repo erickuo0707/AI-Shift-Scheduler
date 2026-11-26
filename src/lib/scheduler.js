@@ -155,6 +155,7 @@ export function loadState() {
       const match = FIXED_SHIFTS.find((f) => f.start === old.start && f.end === old.end) || FIXED_SHIFTS.find((f) => f.id === old.id);
       if (match) idMap.set(old.id, match.id);
     });
+    FIXED_SHIFTS.forEach((f) => { if (!idMap.has(f.id)) idMap.set(f.id, f.id); }); // 已是固定班別 id 的直接沿用
     const oldIds = shifts.map((x) => x.id);
     staff.forEach((p) => {
       const source = Array.isArray(p.allowedShiftIds) ? p.allowedShiftIds : oldIds; // 原本「全部可排」＝原有的班別

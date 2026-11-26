@@ -4,7 +4,7 @@ import { addDays, coveredSlotIds, formatDateLabel, isoDate, monthDates, parseDat
 
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
-export function ResultPanel({ state, onCsv, onBackup, onEditCell, onRestore }) {
+export function ResultPanel({ state, onCsv, onExcel, onBackup, onEditCell, onRestore }) {
   const result = state.result;
   const month = state.settings.month;
   const dates = monthDates(month);
@@ -58,11 +58,13 @@ export function ResultPanel({ state, onCsv, onBackup, onEditCell, onRestore }) {
     <Panel
       id="resultSection"
       eyebrow="Step 03 · 班表"
+      className="no-print"
       title="排班建議"
       sub={formatDateLabel(dates[0]) + " 至 " + formatDateLabel(dates[dates.length - 1]) + " · 必要班位 " + required.length + " 個" + (optional.length ? "，選填 " + optional.length + " 個（已排 " + optional.filter((s) => covered.has(s.id)).length + "）" : "")}
       actions={<>
         {result.edited && <button className="btn" onClick={onRestore}>還原系統排班</button>}
-        <button className="btn" onClick={onCsv}><IconDownload />下載 CSV</button>
+        <button className="btn" onClick={onExcel}><IconDownload />下載 Excel</button>
+        <button className="btn" onClick={onCsv}><IconDownload />CSV</button>
         <button className="btn" onClick={onBackup}><IconSave />備份設定</button>
         <button className="btn btn-primary" onClick={() => window.print()}><IconPrinter />列印班表</button>
       </>}

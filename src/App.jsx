@@ -7,6 +7,8 @@ import { StaffDialog } from "./components/sections/StaffDialog";
 import { SettingsPanel } from "./components/sections/SettingsPanel";
 import { ResultPanel } from "./components/sections/ResultPanel";
 import { CellEditDialog } from "./components/sections/CellEditDialog";
+import { PrintSheet } from "./components/sections/PrintSheet";
+import { exportRotaExcel } from "./lib/exportExcel";
 import { applyManualEdit, createEngine, demoState, exportBackup, exportCsv, loadState, offRequestLimit, persist, uid } from "./lib/scheduler";
 
 export default function App() {
@@ -119,10 +121,11 @@ export default function App() {
         <Hero />
         <StaffPanel state={state} onAdd={() => setDialog({ open: true, personId: "" })} onEdit={(id) => setDialog({ open: true, personId: id })} onDelete={deletePerson} onReset={resetDemo} />
         <SettingsPanel state={state} onSetting={setSetting} onGenerate={generate} busy={busy} monthsWithData={monthsWithData} />
-        {state.result && <ResultPanel state={state} onCsv={() => exportCsv(state)} onBackup={() => exportBackup(state)} onEditCell={(personId, date) => setCell({ personId, date })} onRestore={restoreOriginal} />}
+        {state.result && <ResultPanel state={state} onCsv={() => exportCsv(state)} onExcel={() => exportRotaExcel(state).catch(() => toast("Excel 匯出失敗，請再試一次。"))} onBackup={() => exportBackup(state)} onEditCell={(personId, date) => setCell({ personId, date })} onRestore={restoreOriginal} />}
         <div className="no-print p-6 text-center text-[0.85rem] text-dim">ShiftWell · 排班建議由本機規則引擎產生，所有資料保存在目前瀏覽器。</div>
       </main>
       <StaffDialog open={dialog.open} person={editingPerson} state={state} onClose={() => setDialog({ open: false, personId: "" })} onSave={savePerson} toast={toast} />
+      <PrintSheet state={state} />
       <CellEditDialog state={state} cell={cell} onClose={() => setCell(null)} onApply={applyCellEdit} />
       <Toast message={toastMsg} />
     </>
